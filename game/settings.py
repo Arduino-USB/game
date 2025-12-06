@@ -1,7 +1,12 @@
 # settings.py
+import pygame
 
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 1000
+display_size = pygame.display.Info()
+
+
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 800
 FPS = 60
 WALKSPEED = 15
 SEND_INTERVAL = 0.05  # 50ms

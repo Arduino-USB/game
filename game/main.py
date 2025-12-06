@@ -1,8 +1,9 @@
 # main.py
 import pygame
 import time
-from settings import FPS
+
 pygame.init()
+from settings import FPS
 
 clock = pygame.time.Clock()
 running = True
@@ -16,19 +17,22 @@ while running:
 			running = False
 
 	output = getattr(scenes, current_scene)()
-
-	if output is not None:
-		current_scene = output[0]
-		
-		if len(output) < 2:
-			break
 	
-		scene_dict = output[1]
-		scene_keys = list(scene_dict.keys())
-		for i in range(len(scene_dict)):
-			scene_output[scene_keys[i]] = scene_dict[scene_keys[i]]
+	if output != None:
+		current_scene = output
+	
+#	if output is not None:
+#		current_scene = output[0]
 		
+#		if len(output) < 2:
+#			break
+#	
+#		scene_dict = output[1]
+#		scene_keys = list(scene_dict.keys())
+#		for i in range(len(scene_dict)):
+#			scene_output[scene_keys[i]] = scene_dict[scene_keys[i]]
 		
+	
 
 	pygame.display.flip()
 	clock.tick(FPS)

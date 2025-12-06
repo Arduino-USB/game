@@ -1,10 +1,10 @@
 
 
-def set_location(data, server_data=None):
+def set_location(data, server_data=None, from_id=None):
 	return {"SET": {"location": {"x": data['x'], "y": data['y']}}}
 
 
-def set_username(data, server_data=None):
+def set_username(data, server_data=None, from_id=None):
 	s_data = server_data
 	s_keys = list(s_data.keys())
 	
@@ -15,10 +15,10 @@ def set_username(data, server_data=None):
 			return {"SEND": {"error": "USER_EXISTS"}}
 	
 	# If not, set the username for this client
-	return {"SET": {"username": data, "message": "SUCCESS"}}
+	return {"SET": {"username": data}, "SEND" : {"uuid" : from_id, "message" : "SUCCESS"}}
 
 
-def set_uuid(data, server_data=None):
+def set_uuid(data, server_data=None, from_id=None):
 	s_data = server_data
 	s_keys = list(s_data.keys())
 	

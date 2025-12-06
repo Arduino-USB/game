@@ -12,13 +12,16 @@ from player import handle_input, draw_players
 from network import update_server_location, get_server_data
 
 sys.path.append(os.path.dirname(os.getcwd()))
-from client import set_host, send_to_server, read_from_server 
+from client import set_host, send_to_server, read_reply, connect, set_uuid
 
 import uuid
+from datetime import datetime, timedelta
 
 
 client_data = {"x": 0, "y": 0}
 last_send_time = 0
+
+
 
 
 def show_message(message, duration=500):
@@ -67,43 +70,66 @@ def setup_scene():
 	
 	uuid_accepted = False
 	u_id = str(uuid.uuid4())
-
-	while not uuid_accepted:
-		
-		send_to_server({"set_uuid" : u_id})
-		
-		while True:
-			time.sleep(0.01)
-			reply = read_from_server()
-			
-			print(f"Reply when SEND: {reply}")
 	
-			if reply is not None and "server_data" not in reply.keys():
-				reply_keys = list(reply.keys())
-				for i in range(len(reply_keys)):
-					current_dih = reply
-					print(f"Currently checking dict: {current_dih}")
-					if current_dih["uuid"] == u_id and current_dih["message"] == "SUCCESS":
-						print("good")
-						uuid_accepted = True
-					
-				
+	connect(ip)
+		
+	send_to_server({"set_uuid" : u_id})
+		
+	while not uuid_accepted:
+		time.sleep(0.01)
+		reply = read_reply()
+		
+		print(f"Reply when SEND: {reply}")
+		
+		last_time = datetime.now()
+		if reply is not None:
+			reply_keys = list(reply.keys())
+			for i in range(len(reply_keys)):
+				current_dih = reply
+				print(f"Currently checking dict: {current_dih}")
+				if current_dih["uuid"] == u_id and current_dih["message"] == "SUCCESS":
+					uuid_accepted = True
+					set_uuid(u_id)
+					break
+
+		elif datetime.now() - last_time >= timedelta(seconds=0.5):
+			print("server did not respond, sending another UUID") 
+			u_id = str(uuid.uuid4())
+			send_to_server({"set_uuid" : u_id})
 	
 	username = popup_input("Enter Your Username")
-			
 	send_to_server({"set_username" : username})
+			
+	username_accepted = False
+
+	while not username_accepted:
+		time.sleep(0.01)
+		
+		reply = read_reply()
+
+		if reply == None:
+			continue
+		
+		if reply["message"] == "SUCCESS":
+			break
+		else:
+			username = popup_input("Error: Username taken")
+			send_to_server({"set_username" : username})
 	
 	
 	
-	return "main_scene", {"uuid" : u_id}
+	return "main_scene"
 	
 	
 def main_scene():
+
 	global last_send_time
 	moved = handle_input(client_data)
 	if moved:
 		last_send_time = update_server_location(client_data, last_send_time, SEND_INTERVAL)
 
 	screen.fill(BG_COLOR)
-	server_data = get_server_data()
-	draw_players(screen, server_data)
+	 
+	draw_players(screen, get_server_data())
+	
+	#return "end_scene"
