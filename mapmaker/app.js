@@ -9,36 +9,43 @@ canvas.height = tileSize;
 const ctx = canvas.getContext("2d");
 
 let currentX=0, currentY=0;
-let grid={}; // "x,y": {image,file,scale,crop,regions}
+let grid={}; // "x,y": {image,file,regions}
 
 function key(x,y){return `${x},${y}`;}
-function ensureCell(x,y){if(!grid[key(x,y)]) grid[key(x,y)]={image:null,file:null,scale:1,crop:null,regions:[]};}
+function ensureCell(x,y){if(!grid[key(x,y)]) grid[key(x,y)]={image:null,file:null,regions:[]};}
 ensureCell(0,0);
 
 function updateDisplay(){document.getElementById("coordDisplay").textContent=`(${currentX},${currentY})`;}
 
+// -------------------------
+// RENDER FUNCTION
+// -------------------------
 function render(){
 	ctx.clearRect(0,0,canvas.width,canvas.height);
-	let cell=grid[key(currentX,currentY)];
+	let cell = grid[key(currentX,currentY)];
 	if(cell.image){
-		let img=new Image();
-		img.src=cell.image;
-		img.onload=()=>{
-			if(cell.crop){
-				let c=cell.crop;
-				ctx.drawImage(img,c.x,c.y,c.w,c.h,0,0,tileSize,tileSize);
-			}else{
-				let s=cell.scale||1;
-				ctx.drawImage(img,0,0,img.width*s,img.height*s);
-			}
-		}
+		let img = new Image();
+		img.src = cell.image;
+		img.onload = ()=>{
+			ctx.drawImage(img,0,0,tileSize,tileSize);
+			drawRegions(cell);
+		};
+	} else {
+		drawRegions(cell);
 	}
-	// draw regions
+}
+
+function drawRegions(cell){
+	if(!cell) return;
 	ctx.strokeStyle="red";
+	ctx.fillStyle="red";
+	ctx.font="14px sans-serif";
 	cell.regions.forEach(r=>{
 		ctx.strokeRect(r.x1,r.y1,r.x2-r.x1,r.y2-r.y1);
+		ctx.fillText(r.name,r.x1+2,r.y1+14);
 	});
 }
+
 updateDisplay();
 render();
 
@@ -51,12 +58,13 @@ document.getElementById("left").onclick=()=>{currentX--; ensureCell(currentX,cur
 document.getElementById("right").onclick=()=>{currentX++; ensureCell(currentX,currentY); updateDisplay(); render();}
 
 // -------------------------
-// REGION SELECTION BLUE RECT
+// REGION CREATION / DELETE
 // -------------------------
 const preview=document.getElementById("regionPreview");
 let selecting=false,startX,startY;
 
 canvas.addEventListener("mousedown",e=>{
+	if(e.button!==0) return;
 	selecting=true;
 	startX=e.offsetX; startY=e.offsetY;
 	preview.style.left=startX+"px";
@@ -64,6 +72,7 @@ canvas.addEventListener("mousedown",e=>{
 	preview.style.width="0px"; preview.style.height="0px";
 	preview.style.display="block";
 });
+
 canvas.addEventListener("mousemove",e=>{
 	if(!selecting) return;
 	let x=e.offsetX,y=e.offsetY;
@@ -71,6 +80,7 @@ canvas.addEventListener("mousemove",e=>{
 	preview.style.left=left+"px"; preview.style.top=top+"px";
 	preview.style.width=w+"px"; preview.style.height=h+"px";
 });
+
 canvas.addEventListener("mouseup",e=>{
 	if(!selecting) return;
 	selecting=false; preview.style.display="none";
@@ -80,14 +90,28 @@ canvas.addEventListener("mouseup",e=>{
 	render();
 });
 
+// Delete region on right click
+canvas.addEventListener("contextmenu",e=>{
+	e.preventDefault();
+	let x=e.offsetX,y=e.offsetY;
+	let cell=grid[key(currentX,currentY)];
+	if(!cell) return;
+	for(let i=cell.regions.length-1;i>=0;i--){
+		let r=cell.regions[i];
+		if(x>=r.x1 && x<=r.x2 && y>=r.y1 && y<=r.y2){
+			if(confirm(`Delete region "${r.name}"?`)) cell.regions.splice(i,1);
+			render();
+			break;
+		}
+	}
+});
+
 // -------------------------
-// IMAGE IMPORT + SCALE/FIT MODAL
+// IMAGE IMPORT + SCALE/FIT
 // -------------------------
-let pendingFile=null;
-let modal=document.getElementById("modal");
-let fitCanvas=document.getElementById("fitCanvas");
-let fitCtx=fitCanvas.getContext("2d");
-let fitOffset={x:0,y:0},fitDragging=false,imgObj=null,mode=null;
+let pendingFile=null, modal=document.getElementById("modal");
+let fitCanvas=document.getElementById("fitCanvas"), fitCtx=fitCanvas.getContext("2d");
+let fitOffset={x:0,y:0}, fitDragging=false, imgObj=null, mode=null;
 
 canvas.addEventListener("dragover",e=>e.preventDefault());
 canvas.addEventListener("drop",e=>{
@@ -97,18 +121,14 @@ canvas.addEventListener("drop",e=>{
 	imgObj.onload=()=>{
 		modal.style.display="flex";
 		fitCanvas.width=tileSize; fitCanvas.height=tileSize;
-		fitOffset={x:0,y:0};
-		fitCtx.clearRect(0,0,tileSize,tileSize);
-		fitCtx.drawImage(imgObj,fitOffset.x,fitOffset.y,imgObj.width,imgObj.height);
+		fitOffset={x:0,y:0}; fitCanvas.style.display="none";
+		drawFitCanvas();
 	}; imgObj.src=URL.createObjectURL(file);
 });
 
 // Modal buttons
 document.getElementById("scaleBtn").onclick=()=>{mode="scale"; fitCanvas.style.display="none";}
-document.getElementById("fitBtn").onclick=()=>{
-	mode="fit"; fitCanvas.style.display="block";
-	fitOffset={x:0,y:0}; drawFitCanvas();
-};
+document.getElementById("fitBtn").onclick=()=>{mode="fit"; fitCanvas.style.display="block"; fitOffset={x:0,y:0}; drawFitCanvas();};
 
 function drawFitCanvas(){
 	if(!imgObj) return;
@@ -116,13 +136,12 @@ function drawFitCanvas(){
 	fitCtx.drawImage(imgObj,fitOffset.x,fitOffset.y,imgObj.width,imgObj.height);
 }
 
-// Drag image in fit mode
+// Drag in fit mode
 fitCanvas.addEventListener("mousedown",e=>{fitDragging=true; fitDragStart={x:e.offsetX,y:e.offsetY};});
 fitCanvas.addEventListener("mousemove",e=>{
 	if(!fitDragging) return;
 	let dx=e.offsetX-fitDragStart.x, dy=e.offsetY-fitDragStart.y;
 	fitOffset.x+=dx; fitOffset.y+=dy;
-	// Clamp: no empty space
 	if(fitOffset.x>0) fitOffset.x=0;
 	if(fitOffset.y>0) fitOffset.y=0;
 	if(fitOffset.x+imgObj.width<tileSize) fitOffset.x=tileSize-imgObj.width;
@@ -132,28 +151,42 @@ fitCanvas.addEventListener("mousemove",e=>{
 });
 fitCanvas.addEventListener("mouseup",e=>{fitDragging=false;});
 
-// Apply/Cancel
+// Apply / Cancel
 document.getElementById("applyBtn").onclick=()=>{
 	let cell=grid[key(currentX,currentY)];
-	cell.file=pendingFile;
-	if(mode=="scale"){cell.scale=tileSize/Math.max(imgObj.width,imgObj.height); cell.crop=null; cell.image=URL.createObjectURL(pendingFile);}
-	else if(mode=="fit"){cell.crop={x:-fitOffset.x,y:-fitOffset.y,w:tileSize,h:tileSize}; cell.scale=1; cell.image=URL.createObjectURL(pendingFile);}
-	render(); modal.style.display="none"; fitCanvas.style.display="none"; pendingFile=null; imgObj=null;
+	if(mode=="scale"){
+		let offCanvas=document.createElement("canvas"); offCanvas.width=tileSize; offCanvas.height=tileSize;
+		let offCtx=offCanvas.getContext("2d");
+		let s=Math.max(tileSize/imgObj.width,tileSize/imgObj.height);
+		offCtx.drawImage(imgObj,0,0,imgObj.width*s,imgObj.height*s);
+		offCanvas.toBlob(blob=>{
+			cell.file=blob; cell.image=URL.createObjectURL(blob);
+			render();
+		});
+	}else if(mode=="fit"){
+		let offCanvas=document.createElement("canvas"); offCanvas.width=tileSize; offCanvas.height=tileSize;
+		let offCtx=offCanvas.getContext("2d");
+		offCtx.drawImage(imgObj,-fitOffset.x,-fitOffset.y,imgObj.width,imgObj.height);
+		offCanvas.toBlob(blob=>{
+			cell.file=blob; cell.image=URL.createObjectURL(blob);
+			render();
+		});
+	}
+	modal.style.display="none"; pendingFile=null; imgObj=null; fitCanvas.style.display="none";
 };
-document.getElementById("cancelBtn").onclick=()=>{modal.style.display="none"; fitCanvas.style.display="none"; pendingFile=null; imgObj=null;}
+document.getElementById("cancelBtn").onclick=()=>{modal.style.display="none"; pendingFile=null; imgObj=null; fitCanvas.style.display="none";};
 
 // -------------------------
 // EXPORT ZIP
 // -------------------------
 document.getElementById("exportBtn").onclick=async()=>{
-	let zip=new JSZip();
-	let imgFolder=zip.folder("imgs");
+	let zip=new JSZip(); let imgFolder=zip.folder("imgs");
 	let config={tileSize, cells:[]};
 	for(let k in grid){
 		let c=grid[k]; if(!c.file) continue;
 		let [x,y]=k.split(",").map(Number);
 		let fname=`imgs/img_${x}_${y}.png`;
-		config.cells.push({x,y,image:fname,scale:c.scale,crop:c.crop,regions:c.regions});
+		config.cells.push({x,y,image:fname,regions:c.regions});
 		imgFolder.file(`img_${x}_${y}.png`,c.file);
 	}
 	zip.file("config.json",JSON.stringify(config,null,2));
@@ -171,7 +204,7 @@ document.getElementById("importZip").addEventListener("change",async e=>{
 	grid={};
 	for(let cell of config.cells){
 		let k=key(cell.x,cell.y);
-		grid[k]={image:null,file:null,scale:cell.scale,crop:cell.crop,regions:cell.regions};
+		grid[k]={image:null,file:null,regions:cell.regions};
 		let blob=await zip.file(cell.image).async("blob");
 		grid[k].image=URL.createObjectURL(blob); grid[k].file=blob;
 	}
