@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Grid Canvas Editor</title>
+<style>
+body { display:flex; flex-direction:column; align-items:center; font-family:sans-serif; }
+#container { position:relative; margin-top:20px; }
+canvas { border:2px solid black; background:white; }
+.arrow { position:absolute; background:#ddd; padding:10px; cursor:pointer; user-select:none; border:1px solid #999; }
+#up { top:-40px; left:50%; transform:translateX(-50%); }
+#down { bottom:-40px; left:50%; transform:translateX(-50%); }
+#left { left:-40px; top:50%; transform:translateY(-50%); }
+#right { right:-40px; top:50%; transform:translateY(-50%); }
+#coordDisplay { margin-top:5px; font-size:20px; font-weight:bold; }
+#regionPreview { position:absolute; border:2px dashed #00f; background:rgba(0,0,255,0.2); display:none; pointer-events:none; }
+/* Modal for Scale/Fit */
+#modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; }
+#modalBox { background:#fff; padding:20px; border:1px solid black; text-align:center; }
+button,input { margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>Grid Canvas Editor</h2>
+<div id="coordDisplay">(0,0)</div>
+
+<button id="exportBtn">Export ZIP</button>
+<input type="file" id="importZip" accept=".zip">
+
+<div id="container">
+  <div id="up" class="arrow">▲</div>
+  <div id="down" class="arrow">▼</div>
+  <div id="left" class="arrow">◀</div>
+  <div id="right" class="arrow">▶</div>
+  <canvas id="canvas"></canvas>
+  <div id="regionPreview"></div>
+</div>
+
+<!-- Modal for Scale / Fit -->
+<div id="modal">
+  <div id="modalBox">
+    <h3>Image Placement</h3>
+    <p>Choose how to place the image:</p>
+    <button id="scaleBtn">Scale</button>
+    <button id="fitBtn">Fit</button>
+    <br><br>
+    <canvas id="fitCanvas" style="border:1px solid black;"></canvas>
+    <br>
+    <button id="applyBtn">OK</button>
+    <button id="cancelBtn">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
+

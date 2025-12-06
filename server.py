@@ -16,7 +16,7 @@ index = 0
 
 
 def get_data():
-	return {"server_data": {addr: info["data"] for addr, info in connected_cmd.items()}}
+	return {addr: info["data"] for addr, info in connected_cmd.items()}
 
 
 # ----------------------------------------
@@ -30,7 +30,6 @@ def handle_cmd_client(conn, addr):
 
 	buffer = ""
 	while True:
-		print(get_data())
 		try:
 			data_raw = conn.recv(1024)
 			if not data_raw:
@@ -64,6 +63,8 @@ def handle_cmd_client(conn, addr):
 				print(f"Got from client: {data}")
 				output = func(data[func_name], server_data=get_data(), from_id=data.get("from"))
 				
+				
+				
 
 				# Update local state
 				if "SET" in output:
@@ -73,8 +74,9 @@ def handle_cmd_client(conn, addr):
 				
 				if "SEND" in output:
 					try:
+						output["SEND"]["func"] = func_name
 						sending = str(output["SEND"]).encode() + b'\n'
-						print(f"Server is sending {sending}")
+						print(f"SENDING {sending}")
 						conn.sendall(sending)
 					except:
 						print(f"Failed to SEND to {addr}")
@@ -114,7 +116,7 @@ def broadcast_loop():
 	"""Broadcast server_data to ALL broadcast clients"""
 	while True:
 		if connected_cmd and connected_bcast:
-			data_to_send = str(get_data()).encode() + b'\n'
+			data_to_send = str({"server_data" : get_data()}).encode() + b'\n'
 
 			for addr in list(connected_bcast.keys()):
 				try:

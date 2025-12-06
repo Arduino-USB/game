@@ -42,15 +42,18 @@ def connect(host=get_host()):
 	HOST = host
 
 	# Broadcast socket
-	_broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	_broadcast_socket.connect((HOST, PORT_BCAST))
-	threading.Thread(target=_recv_broadcast_thread, daemon=True).start()
+	try:
+		_broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		_broadcast_socket.connect((HOST, PORT_BCAST))
+		threading.Thread(target=_recv_broadcast_thread, daemon=True).start()
 
-	# Command/Reply socket
-	_cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	_cmd_socket.connect((HOST, PORT_CMD))
-	threading.Thread(target=_recv_reply_thread, daemon=True).start()
-
+		# Command/Reply socket
+		_cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		_cmd_socket.connect((HOST, PORT_CMD))
+		threading.Thread(target=_recv_reply_thread, daemon=True).start()
+		return True
+	except:
+		return False
 
 # -------------------------------
 # BROADCAST READER

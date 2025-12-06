@@ -24,26 +24,6 @@ last_send_time = 0
 
 
 
-def show_message(message, duration=500):
-	"""
-	Show a small popup message without window decorations for a set duration.
-	"""
-	root = tk.Tk()
-	root.withdraw()  # hide main window
-
-	popup = tk.Toplevel(root)
-	popup.overrideredirect(True)  # remove title bar
-	popup.geometry("200x50+500+300")  # width x height + x_offset + y_offset
-
-	label = tk.Label(popup, text=message, font=("Arial", 12), bg="lightyellow", fg="black")
-	label.pack(expand=True, fill="both")
-
-	# Auto-close after duration
-	popup.after(duration, popup.destroy)
-	root.after(duration + 100, root.destroy)  # destroy hidden root after popup closes
-
-	root.mainloop()
-
 
 
 def popup_input(prompt):
@@ -65,14 +45,25 @@ def setup_scene():
 		ip = popup_input("Error: Please enter an IP")
 	set_host(ip)
 	
-	print("Setting up UUID......")
-	show_message("Setting up UUID.....")
 	
+
 	uuid_accepted = False
 	u_id = str(uuid.uuid4())
 	
-	connect(ip)
+	connected = False
+
+	while not connected:
 		
+		time.sleep(0.01)
+		set_host(ip)
+		connected = connect(ip)
+		if connected == True:
+			break
+		print("host not connected")
+		ip = popup_input("Error: IP not connected")
+		
+		
+	print("Setting up UUID......")
 	send_to_server({"set_uuid" : u_id})
 		
 	while not uuid_accepted:
