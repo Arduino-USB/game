@@ -56,23 +56,26 @@ def get_cell(x, y):
 	return None
 
 
-def load_current_map(x,y, scale, screen):
+def load_current_map(x, y, scale, screen):
 	global X, Y, CURRENT_BLOCK
 	x_ = grid(x)
 	y_ = grid(y)
 	
-	if X == x_ and Y == y_:
+	if X == x_ and Y == y_ and CURRENT_BLOCK is not None and CURRENT_BLOCK.get_size() == (scale, scale):
 		screen.blit(CURRENT_BLOCK, (0,0))	
 		return None
 	
-	print("Notequal")
-	print(f"X : {x_}, Y: {y_}")
+	X, Y = x_, y_
 	cell = get_cell(x_, y_)
 	
-	CURRENT_BLOCK = pygame.image.load(os.path.join(map_path.name, norm_path(cell["image"]))).convert()
+	current_image_path = os.path.join(map_path.name, norm_path(cell["image"]))
 	
-	pygame.transform.scale(CURRENT_BLOCK, (scale, scale))
+	#print(f"CUrrent map path: {current_image_path}, Scale: {scale}")	
+	
+	CURRENT_BLOCK = pygame.image.load(current_image_path).convert()
+	CURRENT_BLOCK = pygame.transform.scale(CURRENT_BLOCK, (1000 * scale, 1000 * scale))
 	screen.blit(CURRENT_BLOCK, (0,0))
+
 	
 	
 def load_map_init():
@@ -83,7 +86,7 @@ def load_map_init():
 	with open(os.path.join(f"{map_path.name}", "config.json")) as f:
 		MAP_CONF = json.load(f)
 	
-	print(f"MAP_CONF: {MAP_CONF}")
+	#print(f"MAP_CONF: {MAP_CONF}")
 		
 	
 	
@@ -91,14 +94,20 @@ def load_map_init():
 
 
 def try_move(player_pos, target_x, target_y, player_width, player_height):
+	
+	
 	"""Attempt to move player to (target_x, target_y). Returns True if moved."""
 	if get_cell(grid(target_x), grid(target_y)) is None:
+		#print(f"try_move: grid doesnt exist {grid(target_x)}, {grid(target_y)}")
 		return False
 		
 	if get_region(target_x , target_y, player_width, player_height) == "no_walk_zone":
+		#print("No walk zone here!!")
 		return False
 	player_pos["x"] = target_x
 	player_pos["y"] = target_y
+	
+	
 	return True
 
 
@@ -173,4 +182,6 @@ def draw_players(screen, server_data, player_image, font, scale, client_data):
 			
 			screen.blit(player_image, player_rect)
 
+	
+load_map_init()
 

@@ -46,7 +46,7 @@ def load_assets(w, h):
 		return None
 	
 	
-	print("load_assets is not returning None this time")
+	#print("load_assets is not returning None this time")
 	scale = CURRENT_W / 1000 
 	
 	LAST_KNOWN_WH = w, h
@@ -156,9 +156,6 @@ def main_scene():
 	if load_assets_output != None:
 		player_image, font, scale = load_assets_output
 	
-	if not MAIN_RAN:
-		load_map_init()
-		MAIN_RAN = False
 
 	draw_players(screen, get_server_data(), player_image, font, scale, client_data)
 	
