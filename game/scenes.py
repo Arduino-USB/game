@@ -25,7 +25,7 @@ last_send_time = 0
 player_image_unscaled = pygame.image.load(PLAYER_IMAGE_PATH).convert()
 player_image_unscaled.set_colorkey((255, 255, 255))
 
-LAST_KNOWN_WH = 1000, 1000
+LAST_KNOWN_WH = 999, 999
 scale = 1
 font = pygame.font.Font(None, round(32 / scale))
 player_image = player_image_unscaled
