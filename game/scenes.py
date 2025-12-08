@@ -15,7 +15,7 @@ from client import set_host, send_to_server, read_reply, connect, set_uuid
 
 import uuid
 from datetime import datetime, timedelta
-
+from player import handle_input, draw_players, load_map_init
 
 client_data = {"x": 0, "y": 0}
 last_send_time = 0
