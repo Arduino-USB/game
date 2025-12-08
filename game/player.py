@@ -6,28 +6,32 @@ import zipfile
 import os
 import json
 
-CURRENT_MAP = "test"
+CURRENT_MAP = "goodmap"
 MAP_CONF = None
 map_path = tempfile.TemporaryDirectory()
 X = None
 Y = None
 CURRENT_BLOCK = None
 
-def get_region(x, y):
-	"""Return the name of the region at (x, y) or None if no region."""
+def get_region(x, y, width, height):
+	"""Return the name of the region the player touches, or None if no region."""
 	for cell in MAP_CONF.get("cells", []):
-		# Compute cell boundaries in world coordinates
 		cell_x = cell["x"] * MAP_CONF["tileSize"]
 		cell_y = cell["y"] * MAP_CONF["tileSize"]
 
-		# Check if (x, y) is inside this cell
-		if cell_x <= x < cell_x + MAP_CONF["tileSize"] and cell_y <= y < cell_y + MAP_CONF["tileSize"]:
-			# Coordinates relative to cell
-			rel_x = x - cell_x
-			rel_y = y - cell_y
-			# Check each region in the cell
+		# Check if player's bbox intersects this cell
+		if x + width >= cell_x and x <= cell_x + MAP_CONF["tileSize"] and \
+		   y + height >= cell_y and y <= cell_y + MAP_CONF["tileSize"]:
+			# Player coordinates relative to cell
+			player_x1 = x - cell_x
+			player_y1 = y - cell_y
+			player_x2 = player_x1 + width
+			player_y2 = player_y1 + height
+
 			for region in cell.get("regions", []):
-				if region["x1"] <= rel_x <= region["x2"] and region["y1"] <= rel_y <= region["y2"]:
+				# Check if player bbox overlaps region bbox
+				if not (player_x2 < region["x1"] or player_x1 > region["x2"] or
+						player_y2 < region["y1"] or player_y1 > region["y2"]):
 					return region["name"]
 	return None
 
@@ -51,8 +55,6 @@ def get_cell(x, y):
 
 	return None
 
-def get_coords():
-	pass
 
 def load_current_map(x,y, scale, screen):
 	global X, Y, CURRENT_BLOCK
@@ -88,33 +90,33 @@ def load_map_init():
 	
 
 
-def try_move(player_pos, target_x, target_y):
+def try_move(player_pos, target_x, target_y, player_width, player_height):
 	"""Attempt to move player to (target_x, target_y). Returns True if moved."""
 	if get_cell(grid(target_x), grid(target_y)) is None:
 		return False
 		
-	if get_region(target_x, target_y+ 100) == "no_walk_zone":
+	if get_region(target_x , target_y, player_width, player_height) == "no_walk_zone":
 		return False
 	player_pos["x"] = target_x
 	player_pos["y"] = target_y
 	return True
 
 
-def handle_input(player_pos):
+def handle_input(player_pos, player_width, player_height):
     keys = pygame.key.get_pressed()
     moved = False
 
     # Right / Left
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        moved |= try_move(player_pos, player_pos["x"] + WALKSPEED, player_pos["y"])
+        moved |= try_move(player_pos, player_pos["x"] + WALKSPEED, player_pos["y"], player_width, player_height)
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        moved |= try_move(player_pos, player_pos["x"] - WALKSPEED, player_pos["y"])
+        moved |= try_move(player_pos, player_pos["x"] - WALKSPEED, player_pos["y"], player_width, player_height)
 
     # Down / Up
     if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-        moved |= try_move(player_pos, player_pos["x"], player_pos["y"] + WALKSPEED)
+        moved |= try_move(player_pos, player_pos["x"], player_pos["y"] + WALKSPEED, player_width, player_height)
     if keys[pygame.K_UP] or keys[pygame.K_w]:
-        moved |= try_move(player_pos, player_pos["x"], player_pos["y"] - WALKSPEED)
+        moved |= try_move(player_pos, player_pos["x"], player_pos["y"] - WALKSPEED, player_width, player_height)
 
     return moved
 
@@ -133,6 +135,11 @@ def filter_server_data(server_data):
 def draw_players(screen, server_data, player_image, font, scale, client_data):
 	
 	load_current_map(client_data["x"], client_data["y"], scale, screen)
+		
+	
+	
+	
+	
 	
 	for user_id, current_user_dict in server_data.items():
 		if "location" in current_user_dict:

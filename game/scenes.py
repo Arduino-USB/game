@@ -8,7 +8,6 @@ import os
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, BG_COLOR, SEND_INTERVAL, PLAYER_IMAGE_PATH
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
 
-from player import handle_input, draw_players, load_map_init
 from network import update_server_location, get_server_data
 
 sys.path.append(os.path.dirname(os.getcwd()))
@@ -148,7 +147,7 @@ def main_scene():
 
 	global last_send_time, player_image, font, scale, MAIN_RAN
 	display = pygame.display.Info()
-	moved = handle_input(client_data)
+	moved = handle_input(client_data, player_image.get_width(), player_image.get_height())
 	if moved:
 		last_send_time = update_server_location(client_data, last_send_time, SEND_INTERVAL)
 
