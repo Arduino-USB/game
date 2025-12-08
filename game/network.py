@@ -19,7 +19,6 @@ def get_server_data():
 	if server_reply is None:
 		server_reply = last_server_data
 	else:
-		print("server_data updated!!")
 		last_server_data = server_reply
 		return server_reply
 
