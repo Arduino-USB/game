@@ -1,20 +1,20 @@
 import pygame
 from scenes.main.helper_functions import load_assets, norm_path
-from scenes.main.map import get_region, grid, load_current_map	
+from scenes.main.map import get_cell, get_region, grid, load_current_map	
 
 
 
 
 def try_move(target_x, target_y, client_data=None):
 	
-	
+	print(f"try_move {client_data}")	
 	"""Attempt to move player to (target_x, target_y). Returns True if moved."""
 	if get_cell(grid(target_x), grid(target_y), client_data=client_data) is None:
 		return client_data, False
 		
 	if get_region(client_data=client_data) == "no_walk_zone":
 		#print("No walk zone here!!")
-		return False
+		return client_data, False
 	client_data["player_pos"]["x"] = target_x
 	client_data["player_pos"]["y"] = target_y
 	
@@ -55,7 +55,9 @@ def filter_server_data(server_data):
 
 def draw_objects(server_data, client_data=None):
 	
-	client_data = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
+	print(client_data, type(client_data))
+		
+	client_data, return_val = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
 	
 
 	
@@ -73,7 +75,7 @@ def draw_objects(server_data, client_data=None):
 			username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
 			graph_x, graph_y = simplify_coords(location["x"], location["y"])
 			
-			player_rect = player_image.get_rect(topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"]))
+			player_rect = client_data["player_image"].get_rect(topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"]))
             # TEXT RECT
 			text_rect = username_surface.get_rect()
 
@@ -84,6 +86,6 @@ def draw_objects(server_data, client_data=None):
 			text_rect.y -= 25			
 			client_data["screen"].blit(username_surface, text_rect)
 			
-			client_data["screen"].blit(player_image, player_rect)
+			client_data["screen"].blit(client_data["player_image"], player_rect)
 			
 	return client_data

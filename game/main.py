@@ -12,8 +12,6 @@ running = True
 
 
 client_data = {
-	"x": 0, 
-	"y": 0, 	
 	"current_scene" : "setup_scene",
 	"screen" : pygame.display.set_mode((1000, 1000), pygame.RESIZABLE),
 	"FPS" : 60,
@@ -25,8 +23,15 @@ client_data = {
 	"win" : pygame.display.set_mode((1000, 1000), pygame.RESIZABLE),
 	"SEND_INTERVAL" : 0.05,
 	"SCENE_RAN" : False,
-	"PLAYER_IMAGE_PATH" : "player.jpg"
-	
+	"PLAYER_IMAGE_PATH" : "player.jpg",
+	"player_pos" : {"x" : 0, "y" : 0},
+	"BLOCK_X" : 0,
+	"BLOCK_Y" : 0,
+	"CURRENT_BLOCK" : None,
+	"MAP_CONF" : None,
+	"CURRENT_MAP" : "goodmap",
+	"WALKSPEED" : 2,
+	"last_send_time" : 0
 }
 
 def force_square_window(client_data=None):
@@ -49,7 +54,7 @@ while running:
 			client_data["last_resize_time"] = current_time
 
 	if client_data["last_resize_time"] != 0 and (current_time - client_data["last_resize_time"] >= client_data["RESIZE_DELAY"]):
-		client_data = force_square_window()
+		client_data = force_square_window(client_data=client_data)
 		client_data["last_resize_time"] = 0  
 
 

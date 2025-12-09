@@ -99,13 +99,14 @@ def setup_scene(client_data=None):
 			send_to_server({"set_username" : client_data["username"]})
 	
 	
-	return client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
+	client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
+	return client_data
 	
 	
 def main_scene(client_data=None):
 	
 	if client_data["SCENE_RAN"] == False:
-		init_main(client_data=client_data)
+		client_data = init_main(client_data=client_data)
 		client_data["SCENE_RAN"] = True			
 	
 	display = pygame.display.Info()
@@ -114,9 +115,9 @@ def main_scene(client_data=None):
 		client_data["last_send_time"] = update_server_location(client_data=client_data)
 
 	
-	load_assets_output = load_assets(display.current_w, display.current_w, client_data=client_data)
-	if load_assets_output != None:
-		client_data = load_assets_output
+	client_data, load_assets_output = load_assets(display.current_w, display.current_w, client_data=client_data)
+	#if load_assets_output != None:
+	#	client_data = load_assets_output
 			
 
 	client_data = draw_objects(get_server_data(), client_data=client_data)

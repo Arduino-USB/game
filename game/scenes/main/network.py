@@ -9,7 +9,7 @@ def update_server_location(client_data=None):
 	if now - client_data["last_send_time"] >= client_data["SEND_INTERVAL"]:
 		send_to_server({"set_location": {"x": client_data["player_pos"]["x"], "y": client_data["player_pos"]["y"]}})
 		return now
-	return last_send_time
+	return client_data["last_send_time"]
 
 def get_server_data():
 	global last_server_data

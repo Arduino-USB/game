@@ -4,6 +4,7 @@ import zipfile
 import os
 import json
 
+from scenes.main.helper_functions import norm_path
 
 def load_map_init(client_data=None):
 	
@@ -13,22 +14,27 @@ def load_map_init(client_data=None):
 	
 	with open(os.path.join(f"{client_data['map_path'].name}", "config.json")) as f:
 		client_data["MAP_CONF"] = json.load(f)
+
+	return client_data
 	
 
-def get_region(x, y, width, height):
+def get_region(client_data=None):
+	
+	x = client_data["player_pos"]["x"]
+	y = client_data["player_pos"]["y"]
 	"""Return the name of the region the player touches, or None if no region."""
 	for cell in client_data["MAP_CONF"].get("cells", []):
 		cell_x = cell["x"] * client_data["MAP_CONF"]["tileSize"]
 		cell_y = cell["y"] * client_data["MAP_CONF"]["tileSize"]
 
 		# Check if player's bbox intersects this cell
-		if x + width >= cell_x and x <= cell_x + client_data["MAP_CONF"]["tileSize"] and \
-		   y + height >= cell_y and y <= cell_y + client_data["MAP_CONF"]["tileSize"]:
+		if x + client_data["player_width"] >= cell_x and x <= cell_x + client_data["MAP_CONF"]["tileSize"] and \
+		   y + client_data["player_height"] >= cell_y and y <= cell_y + client_data["MAP_CONF"]["tileSize"]:
 			# Player coordinates relative to cell
 			player_x1 = x - cell_x
 			player_y1 = y - cell_y
-			player_x2 = player_x1 + width
-			player_y2 = player_y1 + height
+			player_x2 = player_x1 + client_data["player_width"] 
+			player_y2 = player_y1 + client_data["player_height"] 
 
 			for region in cell.get("regions", []):
 				# Check if player bbox overlaps region bbox
@@ -47,8 +53,8 @@ def grid(p):
 
 
 
-def get_cell(x, y):
-	for cell in MAP_CONF.get("cells", []):
+def get_cell(x, y, client_data=None):
+	for cell in client_data["MAP_CONF"].get("cells", []):
 		if cell.get("x") == x and cell.get("y") == y:
 			return cell
 	return None
@@ -64,14 +70,14 @@ def load_current_map(x, y, client_data=None):
 		return client_data, None
 	
 	client_data["BLOCK_X"], client_data["BLOCK_Y"] = x, y
-	cell = get_cell(x, y)
+	cell = get_cell(x, y, client_data=client_data)
 	
-	current_image_path = os.path.join(map_path.name, norm_path(cell["image"]))
+	current_image_path = os.path.join(client_data["map_path"].name, norm_path(cell["image"]))
 	
 	#print(f"CUrrent map path: {current_image_path}, Scale: {scale}")	
 	
 	client_data["CURRENT_BLOCK"] = pygame.image.load(current_image_path).convert()
-	client_data["CURRENT_BLOCK"] = pygame.transform.scale(CURRENT_BLOCK, (1000 * client_data["scale"], 1000 * client_data["scale"]))
-	screen.blit(client_data["CURRENT_BLOCK"], (0,0))
+	client_data["CURRENT_BLOCK"] = pygame.transform.scale(client_data["CURRENT_BLOCK"], (1000 * client_data["scale"], 1000 * client_data["scale"]))
+	client_data["screen"].blit(client_data["CURRENT_BLOCK"], (0,0))
 	
 	return client_data, True

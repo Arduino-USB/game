@@ -25,5 +25,6 @@ def load_assets(w, h, client_data=None):
 	player_image = pygame.transform.scale(client_data["player_image"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"] / 10))
 	font = pygame.font.Font(None, int(32 / scale))
 
-	return client_data.update({"player_image" : player_image, "font" : font, "scale" : scale, "player_width" : player_image.get_width(), "player_height" : player_image.get_height, "LAST_KNOWN_WH": LAST_KNOWN_WH })
+	client_data.update({"player_image" : player_image, "font" : font, "scale" : scale, "player_width" : player_image.get_width(), "player_height" : player_image.get_height(), "LAST_KNOWN_WH": LAST_KNOWN_WH })
+	return client_data, True
 
