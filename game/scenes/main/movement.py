@@ -1,26 +1,23 @@
 import pygame
 from scenes.main.helper_functions import load_assets, norm_path
-from scenes.main.map import get_cell, get_region, grid, load_current_map	
-
+from scenes.main.map import teleport_out, get_cell, get_region, grid, load_current_map	
 
 
 
 def try_move(target_x, target_y, client_data=None):
-	
-	print(f"try_move {client_data}")	
-	"""Attempt to move player to (target_x, target_y). Returns True if moved."""
 	if get_cell(grid(target_x), grid(target_y), client_data=client_data) is None:
 		return client_data, False
-		
-	if get_region(client_data=client_data) == "no_walk_zone":
-		#print("No walk zone here!!")
+
+	if get_region(target_x, target_y, client_data=client_data) == "no_walk_zone":
+		# teleport out if stuck
+		coords = teleport_out(client_data)
+		if coords:
+			client_data["player_pos"]["x"], client_data["player_pos"]["y"] = coords
 		return client_data, False
+
 	client_data["player_pos"]["x"] = target_x
 	client_data["player_pos"]["y"] = target_y
-	
-	
 	return client_data, True
-
 
 def handle_input(client_data=None):
     keys = pygame.key.get_pressed()

@@ -16,12 +16,38 @@ def load_map_init(client_data=None):
 		client_data["MAP_CONF"] = json.load(f)
 
 	return client_data
+
+
+def teleport_out(client_data, search_radius=50, step=5):
+	"""
+	Find nearest coordinates outside any region for the player.
+	Returns (x, y) or None if not found.
+	"""
+	px = client_data["player_pos"]["x"]
+	py = client_data["player_pos"]["y"]
+
+	# Check positions in a spiral-ish pattern around the player
+	for r in range(0, search_radius + 1, step):
+		for dx in range(-r, r + 1, step):
+			for dy in range(-r, r + 1, step):
+				tx = px + dx
+				ty = py + dy
+
+				# Make sure within map bounds
+				if tx < 0 or ty < 0:
+					continue
+
+				# Check if target position is free
+				if get_region(tx, ty, client_data=client_data) is None:
+					return tx, ty
+
+	# No free spot found
+	return None
+
 	
 
-def get_region(client_data=None):
+def get_region(x, y, client_data=None):
 	
-	x = client_data["player_pos"]["x"]
-	y = client_data["player_pos"]["y"]
 	"""Return the name of the region the player touches, or None if no region."""
 	for cell in client_data["MAP_CONF"].get("cells", []):
 		cell_x = cell["x"] * client_data["MAP_CONF"]["tileSize"]
