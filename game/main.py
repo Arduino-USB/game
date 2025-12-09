@@ -23,7 +23,7 @@ client_data = {
 	"win" : pygame.display.set_mode((1000, 1000), pygame.RESIZABLE),
 	"SEND_INTERVAL" : 0.05,
 	"SCENE_RAN" : False,
-	"PLAYER_IMAGE_PATH" : "player.jpg",
+	"PLAYER_IMAGE_PATH" : "player.png",
 	"player_pos" : {"x" : 0, "y" : 0},
 	"BLOCK_X" : 0,
 	"BLOCK_Y" : 0,
