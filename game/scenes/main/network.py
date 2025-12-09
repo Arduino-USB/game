@@ -1,13 +1,13 @@
 # network.py
 from client import send_to_server, read_broadcast
-
+import time
 last_server_data = {}
 
-def update_server_location(player_pos, last_send_time, send_interval):
-	import time
+def update_server_location(client_data=None):
+	
 	now = time.time()
-	if now - last_send_time >= send_interval:
-		send_to_server({"set_location": {"x": player_pos["x"], "y": player_pos["y"]}})
+	if now - client_data["last_send_time"] >= client_data["SEND_INTERVAL"]:
+		send_to_server({"set_location": {"x": client_data["player_pos"]["x"], "y": client_data["player_pos"]["y"]}})
 		return now
 	return last_send_time
 

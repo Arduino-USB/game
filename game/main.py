@@ -5,27 +5,38 @@ pygame.init()
 pygame.display.set_caption("mypygameapp")
 
 from settings import FPS
-import scenes
+import scene_manager
 
 clock = pygame.time.Clock()
 running = True
 
-current_scene = "setup_scene"
 
-# Start with square window
-win = pygame.display.set_mode((1000, 1000), pygame.RESIZABLE)
+client_data = {
+	"x": 0, 
+	"y": 0, 	
+	"current_scene" : "setup_scene",
+	"screen" : pygame.display.set_mode((1000, 1000), pygame.RESIZABLE),
+	"FPS" : 60,
+	"RESIZE_DELAY" : 1000,
+	"last_resize_time" : 0,
+	"font" : pygame.font.Font(None, 32),
+	"LAST_KNOWN_WH" : (999,999),
+	"scale" : 1,
+	"win" : pygame.display.set_mode((1000, 1000), pygame.RESIZABLE),
+	"SEND_INTERVAL" : 0.05,
+	"SCENE_RAN" : False,
+	"PLAYER_IMAGE_PATH" : "player.jpg"
+	
+}
 
-# === NEW: Debounce logic for resize ===
-last_resize_time = 0
-RESIZE_DELAY = 1000  # milliseconds (1 second)
-
-def force_square_window():
-	global win
-	w, h = win.get_size()
+def force_square_window(client_data=None):
+	
+	w, h = client_data["win"].get_size()
 	new_size = min(w, h)
 	if w != new_size or h != new_size:
-		win = pygame.display.set_mode((new_size, new_size), pygame.RESIZABLE)
-
+		client_data["win"] = pygame.display.set_mode((new_size, new_size), pygame.RESIZABLE)
+	
+	return client_data
 # =================================================================
 while running:
 	current_time = pygame.time.get_ticks()
@@ -35,22 +46,20 @@ while running:
 			running = False
 
 		elif event.type == pygame.VIDEORESIZE:
-			# User is dragging → just accept the new size, do nothing yet
-			last_resize_time = current_time
-			# (Optional) you can even remove the line below if you want raw size
-			# win is already updated by pygame automatically on VIDEORESIZE
+			client_data["last_resize_time"] = current_time
 
-	# === Check if user stopped resizing for 1 second ===
-	if last_resize_time != 0 and (current_time - last_resize_time >= RESIZE_DELAY):
-		force_square_window()
-		last_resize_time = 0  # reset so it only happens once
+	if client_data["last_resize_time"] != 0 and (current_time - client_data["last_resize_time"] >= client_data["RESIZE_DELAY"]):
+		client_data = force_square_window()
+		client_data["last_resize_time"] = 0  
 
-	# Your original scene logic — unchanged
-	output = getattr(scenes, current_scene)()
-	if output is not None:
-		current_scene = output
+
+	output = getattr(scene_manager, client_data["current_scene"])(client_data=client_data)
+	if output is isinstance(output, dict):
+		client_data.update(output)
+	
+	
 
 	pygame.display.flip()
-	clock.tick(FPS)
+	clock.tick(client_data["FPS"])
 
 pygame.quit()
