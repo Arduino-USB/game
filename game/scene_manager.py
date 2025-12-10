@@ -1,4 +1,5 @@
 import pygame
+import base64
 import tkinter as tk
 from tkinter import simpledialog
 import time
@@ -113,10 +114,13 @@ def wait_scene(client_data=None):
 	else:
 		client_data["PLAYER_IMAGE_PATH"] = "player.png"
 	
+	with open(client_data["PLAYER_IMAGE_PATH"], "rb") as f:
+		print("sending player sprite to server")
+		send_to_server({"set_player_image" : base64.b64encode(f.read()).decode()})
+	
 	print("Waiting for server to start the game")
 	
-	
-	
+
 	while True:
 		time.sleep(0.01)
 		reply = read_reply()
@@ -124,12 +128,25 @@ def wait_scene(client_data=None):
 		if reply == None:
 			continue	
 
-		if "message" in reply.keys() and reply["message"] == "GAME_START":
-			break
+		if "message" in reply.keys() and "role" in reply.keys():
+			client_data["role"] = reply["role"]
 	
-	print("Game started! Getting roles")	
+		
+	print("Game started! Initing player images")
+	
+	while True:
+		time.sleep(0.01)	
+		reply = read_reply()
+		
+		if reply == None:
+			continue
 
+		if reply["func"] == "__send_init_player_data":
+			client_data["init_player_data"] = reply["player_data"]
 	
+	print("Server sent player_data, starting next scene")
+	
+	client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
 	return client_data
 	
 def main_scene(client_data=None):

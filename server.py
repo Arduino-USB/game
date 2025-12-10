@@ -5,6 +5,7 @@ import sys
 import ast
 import traceback
 import time
+import random
 
 HOST = "127.0.0.1"
 PORT_CMD = 6742       # Commands + SEND replies
@@ -22,6 +23,49 @@ def get_data():
 # ----------------------------------------
 # COMMAND HANDLER (port 6742)
 # ----------------------------------------
+
+
+# ----------------------------------------
+# SERVER FUNCTION CALL HELPER
+# ----------------------------------------
+def call_helper(data, conn=None, addr=None):
+	"""
+	data: dict in the form {"func_name": payload}
+	conn, addr: optional, only used if sending to a client
+	"""
+	func_name = list(data.keys())[0]
+
+	# block functions starting with __
+	if func_name.startswith("__"):
+		print(f"Function {func_name} not allowed")
+		return {"ERROR": "Function not allowed"}
+
+	func = getattr(server_functions, func_name, None)
+	if not callable(func):
+		print(f"{func_name} not callable")
+		return {"ERROR": "Function not callable"}
+
+	# call function
+	output = func(data[func_name], server_data=get_data(), from_id=data.get("from"))
+
+	# update server state for this client if addr provided
+	if addr and "SET" in output:
+		for k in output["SET"]:
+			connected_cmd[addr]["data"][k] = output["SET"][k]
+
+	# send response to client if conn provided
+	if conn and "SEND" in output:
+		try:
+			output["SEND"]["func"] = func_name
+			sending = str(output["SEND"]).encode() + b'\n'
+			print(f"SENDING {sending}")
+			conn.sendall(sending)
+		except:
+			print(f"Failed to SEND to {addr}")
+
+	return output
+
+
 def handle_cmd_client(conn, addr):
 	global index
 	connected_cmd[addr] = {"conn": conn, "data": {}, "id": index}
@@ -47,40 +91,12 @@ def handle_cmd_client(conn, addr):
 					data = ast.literal_eval(line)
 				except:
 					print("Invalid data:", line)
-					continue
+					
 
 				if not isinstance(data, dict):
 					print("Received non-dict data:", data)
 					continue
-
-				func_name = list(data.keys())[0]
-				func = getattr(server_functions, func_name, None)
-
-				if not callable(func):
-					print(f"{func_name} not callable")
-					continue
-				
-				print(f"Got from client: {data}")
-				output = func(data[func_name], server_data=get_data(), from_id=data.get("from"))
-				
-				
-				
-
-				# Update local state
-				if "SET" in output:
-					for k in output["SET"]:
-						connected_cmd[addr]["data"][k] = output["SET"][k]
-
-				
-				if "SEND" in output:
-					try:
-						output["SEND"]["func"] = func_name
-						sending = str(output["SEND"]).encode() + b'\n'
-						print(f"SENDING {sending}")
-						conn.sendall(sending)
-					except:
-						print(f"Failed to SEND to {addr}")
-
+				call_helper(data, conn, addr)
 		except Exception as e:
 			print("CMD Error:", e)
 			traceback.print_exc()
@@ -111,6 +127,15 @@ def handle_bcast_client(conn, addr):
 	if addr in connected_bcast:
 		del connected_bcast[addr]
 
+def cmd_accept_loop(cmd_socket):
+	while True:
+		r, addr = cmd_socket.accept()
+		threading.Thread(target=handle_cmd_client, args=(r, addr), daemon=True).start()
+
+def bcast_accept_loop(bcast_socket):
+	while True:
+		r, addr = bcast_socket.accept()
+		threading.Thread(target=handle_bcast_client, args=(r, addr), daemon=True).start()
 
 def broadcast_loop():
 	"""Broadcast server_data to ALL broadcast clients"""
@@ -128,47 +153,54 @@ def broadcast_loop():
 		time.sleep(0.1)
 
 
+def intermission():
+	return
+	for i in reversed(range(1, 10)):
+		print(f"{i} seconds left till game start")
+		time.sleep(1)
+		print(get_data())
+		
+	#server_data = get_data()
+		
+	#hunter = random.choice(list(server_data.keys()))	
+	
+	#for i in range():
+	#	pass	
+		#call_helper({"__send_role" : {"uuid" : "", "role" : ""}})
+	
 # ----------------------------------------
 # SERVER MAIN (one file, two ports)
-# ----------------------------------------
 def main():
 	print("Server ready")
 
-	# Start broadcast thread
-	threading.Thread(target=broadcast_loop, daemon=True).start()
-
-	# Listener for CMD socket
+	# Set up sockets
 	cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	cmd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	cmd_socket.bind((HOST, PORT_CMD))
 	cmd_socket.listen()
 
-	# Listener for BCAST socket
 	bcast_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	bcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	bcast_socket.bind((HOST, PORT_BCAST))
 	bcast_socket.listen()
 
+	# Start accept loops in background threads
+	threading.Thread(target=cmd_accept_loop, args=(cmd_socket,), daemon=True).start()
+	threading.Thread(target=bcast_accept_loop, args=(bcast_socket,), daemon=True).start()
+
 	print(f"CMD server on port {PORT_CMD}")
 	print(f"BCAST server on port {PORT_BCAST}")
 
-	try:
-		while True:
-			# Accept from BOTH sockets
-			r1, addr1 = cmd_socket.accept()
-			threading.Thread(target=handle_cmd_client, args=(r1, addr1), daemon=True).start()
+	print("Starting intermission stage")
+	intermission()
+	print("Intermission stage is over, game is starting")
 
-			r2, addr2 = bcast_socket.accept()
-			threading.Thread(target=handle_bcast_client, args=(r2, addr2), daemon=True).start()
+	# Start broadcast loop
+	threading.Thread(target=broadcast_loop, daemon=True).start()
 
-	except KeyboardInterrupt:
-		print("\nCtrl-C: shutting down")
-
-	finally:
-		cmd_socket.close()
-		bcast_socket.close()
-
+	# Keep main thread alive so program doesn't exit
+	while True:
+		time.sleep(1)
 
 if __name__ == "__main__":
 	main()
-

@@ -29,7 +29,7 @@ client_data = {
 	"BLOCK_Y" : 0,
 	"CURRENT_BLOCK" : None,
 	"MAP_CONF" : None,
-	"CURRENT_MAP" : "goodmap",
+	"CURRENT_MAP" : "cmp",
 	"WALKSPEED" : 2,
 	"last_send_time" : 0
 }

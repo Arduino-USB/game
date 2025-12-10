@@ -29,3 +29,5 @@ def set_uuid(data, server_data=None, from_id=None):
 	
 	return {"SET": {"uuid": data}, "SEND" : {"uuid" : data, "message" : "SUCCESS"}}
 
+def set_player_image(data, server_data=None, from_id=None):
+	return {"SET" : {"player_image" : data}}
