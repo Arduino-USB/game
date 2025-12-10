@@ -123,7 +123,7 @@ def read_reply():
 			if USER_UUID == None:
 				print("UUID not set up yet")		
 				return reply_from_server	
-			elif reply_from_server["uuid"] == USER_UUID:
+			elif USER_UUID in reply_from_server["uuid"] or reply_from_server["uuid"] == "*":
 				print("Message is for me")
 				return reply_from_server
 			else:

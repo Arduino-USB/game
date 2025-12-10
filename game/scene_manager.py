@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
  
 from scenes.setup.helper_functions import popup_input
 
+
+from scenes.wait.helper_functions import file_picker, message_box
+
 from scenes.main.helper_functions import load_assets
 from scenes.main.map import get_region, grid, get_cell, load_current_map, load_map_init
 from scenes.main.movement import handle_input, draw_objects
@@ -99,9 +102,35 @@ def setup_scene(client_data=None):
 			send_to_server({"set_username" : client_data["username"]})
 	
 	
-	client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
+	client_data.update({"current_scene" : "wait_scene", "SCENE_RAN" : False})
 	return client_data
+
+def wait_scene(client_data=None):
+	pick_player_image = message_box("Pick custom player image? [Y/n]")	
 	
+	if pick_player_image == True:
+		client_data["PLAYER_IMAGE_PATH"] = file_picker()
+	else:
+		client_data["PLAYER_IMAGE_PATH"] = "player.png"
+	
+	print("Waiting for server to start the game")
+	
+	
+	
+	while True:
+		time.sleep(0.01)
+		reply = read_reply()
+	
+		if reply == None:
+			continue	
+
+		if "message" in reply.keys() and reply["message"] == "GAME_START":
+			break
+	
+	print("Game started! Getting roles")	
+
+	
+	return client_data
 	
 def main_scene(client_data=None):
 	
