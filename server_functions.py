@@ -64,10 +64,15 @@ def __send_init_data(data, server_data=None, from_id=None):
 		else:
 			player_spawn = random.choice(get_region_coords(MAP_CONF, "player_spawn"))
 			master_dih.update({player_dict["uuid"] : {"role" : "survivor", "player_image": player_dict["player_image"] ,"location" : {"x": player_spawn[0], "y" : player_spawn[1]}}})
+			
+		
+		
+		computer_spawns = get_region_coords("computer_spawn")
+		locker_spawns = get_region_coords("locker_spawn")
+		exit_spawn = get_region_coords("exit_spawn")			
 		
 			
 	
-	
-	return {"SR_SET_USERS": master_dih, "SEND" : master_dih}	
+	return {"SR_SET_OBJ" : {"computers" : }, "SR_SET_USERS": master_dih, "SEND" : {"data" : master_dih, "map" : current_map}}	
 
 

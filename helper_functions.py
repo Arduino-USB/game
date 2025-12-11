@@ -17,12 +17,6 @@ def load_map_init(map_name):
 	return map_path, MAP_CONF
 
 def get_region_coords(map_conf, region_name):
-	"""
-	map_conf: dict → already loaded MAP_CONF
-	region_name: str → name of region to search
-
-	returns: list of (x, y) tuples representing the center of each matching region
-	"""
 	coords = []
 
 	for cell in map_conf.get("cells", []):
