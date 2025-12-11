@@ -99,6 +99,35 @@ def call_helper(data, conn=None, addr=None):
 
 			print(f"SR_SET_OBJ applied to object uuid={target_uuid}")
 
+
+	if "SR_DEL_USERS" in output:
+		payload = output["SR_DEL_USERS"]  # {uuid: [keys]} or {uuid: "*"}
+
+		users = get_data()["users"]
+
+		for target_uuid, keys_to_delete in payload.items():
+			found_addr = None
+
+			for a in users:
+				if users[a].get("uuid") == target_uuid:
+					found_addr = a
+					break
+
+			if found_addr is None:
+				print(f"SR_DEL_USERS uuid={target_uuid} not found")
+				continue
+
+			if keys_to_delete == "*":
+				# Remove entire user data dict (keep connection alive)
+				connected_cmd[found_addr]["data"].clear()
+				print(f"SR_DEL_USERS cleared entire data for uuid={target_uuid}")
+			else:
+				# Remove only listed keys
+				for k in keys_to_delete:
+					if k in connected_cmd[found_addr]["data"]:
+						del connected_cmd[found_addr]["data"][k]
+						print(f"SR_DEL_USERS deleted key '{k}' from uuid={target_uuid}")
+
 	# -----------------------------------------------------
 	# Normal per-client SET
 	# -----------------------------------------------------
