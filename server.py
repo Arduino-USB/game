@@ -33,9 +33,16 @@ def call_helper(data, conn=None, addr=None):
 	data: dict in the form {"func_name": payload}
 	conn, addr: optional, only used if sending to a client
 	"""
+	# ensure client entry exists
+	if addr is not None:
+		if addr not in connected_cmd:
+			connected_cmd[addr] = {"conn": conn, "data": {}, "id": -1}
+		else:
+			connected_cmd[addr]["conn"] = conn
+
 	func_name = list(data.keys())[0]
 
-	# block functions starting with __
+	# block internal names
 	if func_name.startswith("__"):
 		print(f"Function {func_name} not allowed")
 		return {"ERROR": "Function not allowed"}
@@ -45,16 +52,47 @@ def call_helper(data, conn=None, addr=None):
 		print(f"{func_name} not callable")
 		return {"ERROR": "Function not callable"}
 
-	# call function
-	output = func(data[func_name], server_data=get_data(), from_id=data.get("from"))
+	# run the server function
+	output = func(
+		data[func_name],
+		server_data=get_data(),
+		from_id=data.get("from")
+	)
 
-	# update server state for this client if addr provided
-	if addr and "SET" in output:
+	# -----------------------------------------------------
+	# NEW: SR_SET (server-wide SET by UUID)
+	# -----------------------------------------------------
+	if "SR_SET" in output:
+		payload = output["SR_SET"]
+
+		# payload should be: { uuid1: {k:v, k:v}, uuid2: {...} }
+		for target_uuid, vars_to_set in payload.items():
+
+			sd = get_data()  # dict of all players
+
+			found = False
+			for a in sd:
+				if sd[a].get("uuid") == target_uuid:
+					for k, v in vars_to_set.items():
+						sd[a][k] = v
+					print(f"SR_SET applied to uuid={target_uuid} at {a}")
+					found = True
+					break
+
+			if not found:
+				print(f"SR_SET uuid={target_uuid} not found")
+
+	# -----------------------------------------------------
+	# Normal per-client SET
+	# -----------------------------------------------------
+	if addr is not None and "SET" in output:
 		for k in output["SET"]:
 			connected_cmd[addr]["data"][k] = output["SET"][k]
 
-	# send response to client if conn provided
-	if conn and "SEND" in output:
+	# -----------------------------------------------------
+	# SEND back to client
+	# -----------------------------------------------------
+	if conn is not None and "SEND" in output:
 		try:
 			output["SEND"]["func"] = func_name
 			sending = str(output["SEND"]).encode() + b'\n'
@@ -66,7 +104,11 @@ def call_helper(data, conn=None, addr=None):
 	return output
 
 
+
+
+
 def handle_cmd_client(conn, addr):
+	
 	global index
 	connected_cmd[addr] = {"conn": conn, "data": {}, "id": index}
 	index += 1
@@ -74,6 +116,7 @@ def handle_cmd_client(conn, addr):
 
 	buffer = ""
 	while True:
+		print(get_data())
 		try:
 			data_raw = conn.recv(1024)
 			if not data_raw:
@@ -154,20 +197,12 @@ def broadcast_loop():
 
 
 def intermission():
-	return
 	for i in reversed(range(1, 10)):
 		print(f"{i} seconds left till game start")
 		time.sleep(1)
 		print(get_data())
 		
-	#server_data = get_data()
-		
-	#hunter = random.choice(list(server_data.keys()))	
-	
-	#for i in range():
-	#	pass	
-		#call_helper({"__send_role" : {"uuid" : "", "role" : ""}})
-	
+	call_helper({"__send_init_data": ""}, conn=conn, addr=addr)
 # ----------------------------------------
 # SERVER MAIN (one file, two ports)
 def main():

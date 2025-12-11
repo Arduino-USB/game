@@ -122,6 +122,7 @@ def wait_scene(client_data=None):
 	
 
 	while True:
+		print("Waiting for roles to be sent from the server")
 		time.sleep(0.01)
 		reply = read_reply()
 	
@@ -141,10 +142,25 @@ def wait_scene(client_data=None):
 		if reply == None:
 			continue
 
-		if reply["func"] == "__send_init_player_data":
-			client_data["init_player_data"] = reply["player_data"]
+		if reply["func"] == "__send_init_data":
+			client_data["init_player_data"] = reply
+			break
 	
-	print("Server sent player_data, starting next scene")
+	while True:
+		time.sleep(0.01)
+		reply = read_reply()
+		
+		if reply == None:
+			continue
+
+		if reply["func"] == "__send_spawn_area":
+			client_data["spawn_areas"] = reply 
+			break
+
+
+	print("Server sent player_data")
+	
+	print("Server send spawn_data")
 	
 	client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
 	return client_data
