@@ -8,31 +8,31 @@ import time
 import random
 
 HOST = "127.0.0.1"
-PORT_CMD = 6742       # Commands + SEND replies
-PORT_BCAST = 6741     # Broadcast updates only
+PORT_CMD = 6742
+PORT_BCAST = 6741
 
-connected_cmd = {}    # addr -> {"conn": socket, "data": {}, "id": int}
-connected_bcast = {}  # addr -> conn only
+connected_cmd = {}		# addr -> {"conn": socket, "data": {}, "id": int}
+connected_bcast = {}	# addr -> conn only
+
+objects = {}			# uuid -> object dict
 index = 0
 
 
+# ----------------------------------------
+# SERVER DATA STRUCTURE
+# ----------------------------------------
 def get_data():
-	return {addr: info["data"] for addr, info in connected_cmd.items()}
-
-
-# ----------------------------------------
-# COMMAND HANDLER (port 6742)
-# ----------------------------------------
+	return {
+		"users": {addr: info["data"] for addr, info in connected_cmd.items()},
+		"objects": objects
+	}
 
 
 # ----------------------------------------
 # SERVER FUNCTION CALL HELPER
 # ----------------------------------------
 def call_helper(data, conn=None, addr=None):
-	"""
-	data: dict in the form {"func_name": payload}
-	conn, addr: optional, only used if sending to a client
-	"""
+
 	# ensure client entry exists
 	if addr is not None:
 		if addr not in connected_cmd:
@@ -60,27 +60,44 @@ def call_helper(data, conn=None, addr=None):
 	)
 
 	# -----------------------------------------------------
-	# NEW: SR_SET (server-wide SET by UUID)
+	# SR_SET_USERS (server-wide user update by UUID)
 	# -----------------------------------------------------
-	if "SR_SET" in output:
-		payload = output["SR_SET"]
+	if "SR_SET_USERS" in output:
+		payload = output["SR_SET_USERS"]	# {uuid: {vars}}
 
-		# payload should be: { uuid1: {k:v, k:v}, uuid2: {...} }
+		users = get_data()["users"]
+
 		for target_uuid, vars_to_set in payload.items():
-
-			sd = get_data()  # dict of all players
-
 			found = False
-			for a in sd:
-				if sd[a].get("uuid") == target_uuid:
+			for a in users:
+				if users[a].get("uuid") == target_uuid:
 					for k, v in vars_to_set.items():
-						sd[a][k] = v
-					print(f"SR_SET applied to uuid={target_uuid} at {a}")
+						users[a][k] = v
+					print(f"SR_SET_USERS applied to uuid={target_uuid} at {a}")
 					found = True
 					break
 
 			if not found:
-				print(f"SR_SET uuid={target_uuid} not found")
+				print(f"SR_SET_USERS uuid={target_uuid} not found")
+
+	# -----------------------------------------------------
+	# SR_SET_OBJ (update or create object by UUID)
+	# -----------------------------------------------------
+	if "SR_SET_OBJ" in output:
+		payload = output["SR_SET_OBJ"]		# {uuid: {vars}}
+
+		for target_uuid, vars_to_set in payload.items():
+
+			# Auto-create entry if missing
+			if target_uuid not in objects:
+				objects[target_uuid] = {"uuid": target_uuid}
+				print(f"SR_SET_OBJ created new object uuid={target_uuid}")
+
+			# Apply updates
+			for k, v in vars_to_set.items():
+				objects[target_uuid][k] = v
+
+			print(f"SR_SET_OBJ applied to object uuid={target_uuid}")
 
 	# -----------------------------------------------------
 	# Normal per-client SET
@@ -104,11 +121,10 @@ def call_helper(data, conn=None, addr=None):
 	return output
 
 
-
-
-
+# ----------------------------------------
+# COMMAND HANDLER
+# ----------------------------------------
 def handle_cmd_client(conn, addr):
-	
 	global index
 	connected_cmd[addr] = {"conn": conn, "data": {}, "id": index}
 	index += 1
@@ -134,12 +150,14 @@ def handle_cmd_client(conn, addr):
 					data = ast.literal_eval(line)
 				except:
 					print("Invalid data:", line)
-					
+					continue
 
 				if not isinstance(data, dict):
 					print("Received non-dict data:", data)
 					continue
+
 				call_helper(data, conn, addr)
+
 		except Exception as e:
 			print("CMD Error:", e)
 			traceback.print_exc()
@@ -152,14 +170,13 @@ def handle_cmd_client(conn, addr):
 
 
 # ----------------------------------------
-# BROADCAST HANDLER (port 6741)
+# BROADCAST HANDLER
 # ----------------------------------------
 def handle_bcast_client(conn, addr):
 	connected_bcast[addr] = conn
 	print(f"[BCAST] Connected: {addr}")
 
 	try:
-		# Broadcast clients don't send us anything
 		while conn.recv(1):
 			pass
 	except:
@@ -170,21 +187,23 @@ def handle_bcast_client(conn, addr):
 	if addr in connected_bcast:
 		del connected_bcast[addr]
 
+
 def cmd_accept_loop(cmd_socket):
 	while True:
 		r, addr = cmd_socket.accept()
 		threading.Thread(target=handle_cmd_client, args=(r, addr), daemon=True).start()
+
 
 def bcast_accept_loop(bcast_socket):
 	while True:
 		r, addr = bcast_socket.accept()
 		threading.Thread(target=handle_bcast_client, args=(r, addr), daemon=True).start()
 
+
 def broadcast_loop():
-	"""Broadcast server_data to ALL broadcast clients"""
 	while True:
 		if connected_cmd and connected_bcast:
-			data_to_send = str({"server_data" : get_data()}).encode() + b'\n'
+			data_to_send = str({"server_data": get_data()}).encode() + b'\n'
 
 			for addr in list(connected_bcast.keys()):
 				try:
@@ -196,19 +215,22 @@ def broadcast_loop():
 		time.sleep(0.1)
 
 
+# ----------------------------------------
+# INTERMISSION
+# ----------------------------------------
 def intermission():
 	for i in reversed(range(1, 10)):
 		print(f"{i} seconds left till game start")
 		time.sleep(1)
 		print(get_data())
-		
-	call_helper({"__send_init_data": ""}, conn=conn, addr=addr)
+
+
 # ----------------------------------------
-# SERVER MAIN (one file, two ports)
+# SERVER MAIN
+# ----------------------------------------
 def main():
 	print("Server ready")
 
-	# Set up sockets
 	cmd_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	cmd_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	cmd_socket.bind((HOST, PORT_CMD))
@@ -219,7 +241,6 @@ def main():
 	bcast_socket.bind((HOST, PORT_BCAST))
 	bcast_socket.listen()
 
-	# Start accept loops in background threads
 	threading.Thread(target=cmd_accept_loop, args=(cmd_socket,), daemon=True).start()
 	threading.Thread(target=bcast_accept_loop, args=(bcast_socket,), daemon=True).start()
 
@@ -230,12 +251,12 @@ def main():
 	intermission()
 	print("Intermission stage is over, game is starting")
 
-	# Start broadcast loop
 	threading.Thread(target=broadcast_loop, daemon=True).start()
 
-	# Keep main thread alive so program doesn't exit
 	while True:
 		time.sleep(1)
 
+
 if __name__ == "__main__":
 	main()
+
