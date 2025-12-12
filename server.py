@@ -27,6 +27,14 @@ def get_data():
 		"objects": objects
 	}
 
+def all_players_ready():
+	users = get_data()["users"]
+	if len(users) < 2:
+		return False
+	for info in users.values():
+		if not all(key in info for key in ("uuid", "username", "player_image")):
+			return False
+	return True
 
 # ----------------------------------------
 # SERVER FUNCTION CALL HELPER
@@ -254,12 +262,36 @@ def broadcast_loop():
 # INTERMISSION
 # ----------------------------------------
 def intermission():
-	for i in reversed(range(1, 10)):
-		print(f"{i} seconds left till game start")
-		time.sleep(1)
-		
-	call_helper({"__send_init_data" : None}, from_server=True)
+	print("Waiting for at least 2 players with username and player image...")
+	countdown_started = False
+	seconds_left = 10	# Change this number if you want a longer/shorter countdown
 
+	while True:
+		ready = all_players_ready()
+		
+		if ready:
+			if not countdown_started:
+				print("Conditions met! Starting intermission countdown...")
+				countdown_started = True
+				seconds_left = 10	# Reset when starting fresh
+
+			print(f"{seconds_left} seconds left till game start")
+			seconds_left -= 1
+
+			if seconds_left < 0:
+				print("Game starting now!")
+				call_helper({"__send_init_data": None}, from_server=True)
+				return	# Exit intermission, game begins
+
+		else:
+			if countdown_started:
+				print("Player left or became incomplete. Pausing countdown and waiting again...")
+				countdown_started = False
+				seconds_left = 10	# Reset for next valid start
+			else:
+				print(f"Waiting for players... Currently {len(get_data()['users'])} connected, need at least 2 ready.")
+
+		time.sleep(1)
 # ----------------------------------------
 # SERVER MAIN
 # ----------------------------------------
