@@ -27,6 +27,12 @@ def get_data():
 		"objects": objects
 	}
 
+
+def remove_key_from_all_users(key):
+	for info in connected_cmd.values():
+		info["data"].pop(key, None)
+
+
 def all_players_ready():
 	users = get_data()["users"]
 	if len(users) < 2:
@@ -281,6 +287,8 @@ def intermission():
 			if seconds_left < 0:
 				print("Game starting now!")
 				call_helper({"__send_init_data": None}, from_server=True)
+				time.sleep(0.1)
+				remove_key_from_all_users("player_image")
 				return	# Exit intermission, game begins
 
 		else:
@@ -292,6 +300,9 @@ def intermission():
 				print(f"Waiting for players... Currently {len(get_data()['users'])} connected, need at least 2 ready.")
 
 		time.sleep(1)
+	
+		
+			
 # ----------------------------------------
 # SERVER MAIN
 # ----------------------------------------

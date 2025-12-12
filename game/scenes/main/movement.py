@@ -1,7 +1,7 @@
 import pygame
 from scenes.main.helper_functions import load_assets, norm_path
 from scenes.main.map import teleport_out, get_cell, get_region, grid, load_current_map	
-
+from pprint import pprint
 
 
 def try_move(target_x, target_y, client_data=None):
@@ -52,37 +52,37 @@ def filter_server_data(server_data):
 
 def draw_objects(server_data, client_data=None):
 	
-	print(client_data, type(client_data))
+		
+	pprint(f"server_data\n\n\n {server_data}")	
 		
 	client_data, return_val = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
 	
-
 	
+		for addr, current_user_dict in server_data["users"].items():
+			if "location" in current_user_dict:
+				location = current_user_dict["location"]
+		
+				# Render username text
+				username_surface = client_data["font"].render(current_user_dict["username"], True, (0, 0, 0))
+				new_w = int(username_surface.get_width() * client_data["scale"])
+				new_h = int(username_surface.get_height() * client_data["scale"])
+				username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
+		
+				# Convert game coords to screen coords
+				graph_x, graph_y = simplify_coords(location["x"], location["y"])
+		
+				# Player rectangle
+				player_rect = current_user_dict["player_image"].get_rect(
+					topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"])
+				)
+		
+				# Text rectangle
+				text_rect = username_surface.get_rect()
+				text_rect.midbottom = player_rect.midtop
+				text_rect.y -= 15  # Move text above player
+		
+				# Draw
+				client_data["screen"].blit(username_surface, text_rect)
+				client_data["screen"].blit(client_data["player_image"], player_rect)
 	
-	for user_id, current_user_dict in server_data.items():
-		if "location" in current_user_dict:
-					
-			#print(f" SCALE: {scale}, FONT_SIZE : ({font.get_height()}, {font.get_linesize()}), PLAYER_SIZE: {player_image.get_size()}")
-			
-			location = current_user_dict["location"]
-			username_surface = client_data["font"].render(current_user_dict["username"], True, (0, 0, 0))
-			new_w = int(username_surface.get_width() * client_data["scale"])
-			new_h = int(username_surface.get_height() * client_data["scale"])
-
-			username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
-			graph_x, graph_y = simplify_coords(location["x"], location["y"])
-			
-			player_rect = client_data["player_image"].get_rect(topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"]))
-            # TEXT RECT
-			text_rect = username_surface.get_rect()
-
-			# Center the bottom of the text at the top center of the player
-			text_rect.midbottom = player_rect.midtop
-
-			# Move it up a little so it doesn't touch the head
-			text_rect.y -= 25			
-			client_data["screen"].blit(username_surface, text_rect)
-			
-			client_data["screen"].blit(client_data["player_image"], player_rect)
-			
 	return client_data
