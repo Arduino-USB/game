@@ -31,7 +31,7 @@ def get_data():
 # ----------------------------------------
 # SERVER FUNCTION CALL HELPER
 # ----------------------------------------
-def call_helper(data, conn=None, addr=None):
+def call_helper(data, conn=None, addr=None, from_server=False):
 
 	# ensure client entry exists
 	if addr is not None:
@@ -43,7 +43,7 @@ def call_helper(data, conn=None, addr=None):
 	func_name = list(data.keys())[0]
 
 	# block internal names
-	if func_name.startswith("__"):
+	if func_name.startswith("__") and from_server == False:
 		print(f"Function {func_name} not allowed")
 		return {"ERROR": "Function not allowed"}
 
@@ -138,15 +138,21 @@ def call_helper(data, conn=None, addr=None):
 	# -----------------------------------------------------
 	# SEND back to client
 	# -----------------------------------------------------
-	if conn is not None and "SEND" in output:
-		try:
-			output["SEND"]["func"] = func_name
-			sending = str(output["SEND"]).encode() + b'\n'
-			print(f"SENDING {sending}")
-			conn.sendall(sending)
-		except:
-			print(f"Failed to SEND to {addr}")
 
+	if "SEND" in output:
+		output["SEND"]["func"] = func_name
+		if conn is not None:
+			sending = str(output["SEND"]).encode() + b'\n'
+			conn.sendall(sending)
+		else:
+			# broadcast to all connected clients
+			for a, info in connected_cmd.items():
+				try:
+					sending = str(output["SEND"]).encode() + b'\n'
+					info["conn"].sendall(sending)
+				except:
+					print(f"Failed to send to {a}")
+	
 	return output
 
 
@@ -251,8 +257,8 @@ def intermission():
 	for i in reversed(range(1, 10)):
 		print(f"{i} seconds left till game start")
 		time.sleep(1)
-		print(get_data())
-
+		
+	call_helper({"__send_init_data" : None}, from_server=True)
 
 # ----------------------------------------
 # SERVER MAIN

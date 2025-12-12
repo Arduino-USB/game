@@ -1,5 +1,29 @@
 import zipfile
 import os 
+import uuid
+import tempfile
+import json
+
+import uuid
+
+def list_to_dict(name, coords_list):
+	master_dih = {}
+
+	for i in range(len(coords_list)):
+		x, y = coords_list[i]
+		obj_uuid = str(uuid.uuid4())
+
+		master_dih[obj_uuid] = {
+			"type": name,
+			"uuid": obj_uuid,
+			"location": {
+				"x": x,
+				"y": y
+			}
+		}
+
+	return master_dih
+
 
 def norm_path(p):
 	parts = p.strip("/").split("/")

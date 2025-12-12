@@ -118,22 +118,22 @@ def wait_scene(client_data=None):
 		print("sending player sprite to server")
 		send_to_server({"set_player_image" : base64.b64encode(f.read()).decode()})
 	
-	print("Waiting for server to start the game")
+	#print("Waiting for server to start the game")
 	
 
-	while True:
-		print("Waiting for roles to be sent from the server")
-		time.sleep(0.01)
-		reply = read_reply()
-	
-		if reply == None:
-			continue	
+	#while True:
+	#	print("Waiting for roles to be sent from the server")
+	#	time.sleep(0.01)
+	#	reply = read_reply()
+	#
+	#	if reply == None:
+	#		continue	
 
-		if "message" in reply.keys() and "role" in reply.keys():
-			client_data["role"] = reply["role"]
+	#	if "message" in reply.keys() and "role" in reply.keys():
+	#		client_data["role"] = reply["role"]
 	
 		
-	print("Game started! Initing player images")
+	print("waiting fro server to send init data")
 	
 	while True:
 		time.sleep(0.01)	
@@ -143,24 +143,27 @@ def wait_scene(client_data=None):
 			continue
 
 		if reply["func"] == "__send_init_data":
-			client_data["init_player_data"] = reply
+			client_data["init_player_data"] = reply["player_data"]
+			client_data["CURRENT_MAP"] = reply["map"]
+			client_data["obj"] = reply["obj"]
 			break
-	
-	while True:
-		time.sleep(0.01)
-		reply = read_reply()
-		
-		if reply == None:
-			continue
 
-		if reply["func"] == "__send_spawn_area":
-			client_data["spawn_areas"] = reply 
-			break
+
+	
+#	while True:
+#		time.sleep(0.01)
+#		reply = read_reply()
+#		
+#		if reply == None:
+#			continue
+#
+#		if reply["func"] == "__send_spawn_area":
+#			client_data["spawn_areas"] = reply 
+#			break
 
 
 	print("Server sent player_data")
 	
-	print("Server send spawn_data")
 	
 	client_data.update({"current_scene" : "main_scene", "SCENE_RAN" : False})
 	return client_data

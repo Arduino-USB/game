@@ -9,7 +9,7 @@ from scenes.main.helper_functions import norm_path
 def load_map_init(client_data=None):
 	
 	client_data["map_path"] = tempfile.TemporaryDirectory()
-	with zipfile.ZipFile(os.path.join("maps", f"{client_data['CURRENT_MAP']}.zip"), "r") as zip_ref:
+	with zipfile.ZipFile(os.path.join("maps", f"{client_data['CURRENT_MAP']}"), "r") as zip_ref:
 		zip_ref.extractall(client_data["map_path"].name)
 	
 	with open(os.path.join(f"{client_data['map_path'].name}", "config.json")) as f:
