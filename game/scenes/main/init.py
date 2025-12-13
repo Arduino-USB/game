@@ -21,7 +21,7 @@ def init(client_data=None):
 	    player_image = BytesIO(base64.b64decode(b64_str))
 	    client_data["player_images"][all_uuids[i]] = pygame.image.load(player_image)	
 	
-	print(f"Loaded player images:\n{client_data["player_images"]}")
+	print(f"Loaded player images:\n{client_data['player_images']}")
 	
 	del[client_data["init_player_data"]]	
 	

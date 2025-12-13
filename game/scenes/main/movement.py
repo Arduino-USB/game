@@ -53,36 +53,69 @@ def filter_server_data(server_data):
 def draw_objects(server_data, client_data=None):
 	
 		
-	pprint(f"server_data\n\n\n {server_data}")	
+	pprint(f"server_data; {server_data}")	
 		
 	client_data, return_val = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
 	
 	
-		for addr, current_user_dict in server_data["users"].items():
-			if "location" in current_user_dict:
-				location = current_user_dict["location"]
-		
-				# Render username text
-				username_surface = client_data["font"].render(current_user_dict["username"], True, (0, 0, 0))
-				new_w = int(username_surface.get_width() * client_data["scale"])
-				new_h = int(username_surface.get_height() * client_data["scale"])
-				username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
-		
-				# Convert game coords to screen coords
-				graph_x, graph_y = simplify_coords(location["x"], location["y"])
-		
-				# Player rectangle
-				player_rect = current_user_dict["player_image"].get_rect(
-					topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"])
-				)
-		
-				# Text rectangle
-				text_rect = username_surface.get_rect()
-				text_rect.midbottom = player_rect.midtop
-				text_rect.y -= 15  # Move text above player
-		
-				# Draw
-				client_data["screen"].blit(username_surface, text_rect)
-				client_data["screen"].blit(client_data["player_image"], player_rect)
+
+	if not server_data:
+		return client_data
 	
+	
+
+	
+	user_data = server_data["users"]
+	user_keys = list(user_data.keys())
+	
+	player_pos = client_data["player_pos"]
+	for i in range(len(user_data)):
+		current_user_dict = user_data[user_keys[i]]
+
+		if "location" in current_user_dict:
+			location = current_user_dict["location"]
+
+			#Check if other players  on the same part of the map and if they are not,
+
+			current_player_grid = (grid(location["x"]), grid(location["y"]))
+			client_player_grid = (grid(player_pos["x"]), grid(player_pos["y"]))
+
+			if current_player_grid != client_player_grid:
+				continue
+
+			#turn server  real coords to relitave ones
+			graph_x, graph_y = simplify_coords(location["x"], location["y"])
+
+			
+
+			#get the player image from ram
+			uuid = current_user_dict["uuid"]
+			player_image = client_data["player_images"][uuid]
+			
+			#username tag thing
+			username_surface = client_data["font"].render(current_user_dict["username"], True, (0, 0, 0))
+
+			#scale that thaang
+			new_w = int(username_surface.get_width() * client_data["scale"])
+			new_h = int(username_surface.get_height() * client_data["scale"])			
+			
+			username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
+
+
+
+
+			#center username and stuff
+			player_rect = player_image.get_rect(
+				topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"])
+			)
+	
+			# Text rectangle
+			text_rect = username_surface.get_rect()
+			text_rect.midbottom = player_rect.midtop
+			text_rect.y -= 15 
+
+			client_data["screen"].blit(username_surface, text_rect)
+			client_data["screen"].blit(player_image, player_rect)
+
+
 	return client_data

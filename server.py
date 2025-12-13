@@ -267,14 +267,17 @@ def broadcast_loop():
 # ----------------------------------------
 # INTERMISSION
 # ----------------------------------------
-def intermission():
+def intermission(debug=False):
 	print("Waiting for at least 2 players with username and player image...")
 	countdown_started = False
 	seconds_left = 10	# Change this number if you want a longer/shorter countdown
 
 	while True:
-		ready = all_players_ready()
-		
+		if not debug:
+			ready = all_players_ready()
+		else:
+			ready = True
+
 		if ready:
 			if not countdown_started:
 				print("Conditions met! Starting intermission countdown...")
@@ -326,7 +329,7 @@ def main():
 	print(f"BCAST server on port {PORT_BCAST}")
 
 	print("Starting intermission stage")
-	intermission()
+	intermission(debug=True)
 	print("Intermission stage is over, game is starting")
 
 	threading.Thread(target=broadcast_loop, daemon=True).start()

@@ -112,7 +112,7 @@ def wait_scene(client_data=None):
 	if pick_player_image == True:
 		client_data["PLAYER_IMAGE_PATH"] = file_picker()
 	else:
-		client_data["PLAYER_IMAGE_PATH"] = "player.png"
+		client_data["PLAYER_IMAGE_PATH"] = os.path.join(os.getcwd(), "game" ,"player.png")
 	
 	with open(client_data["PLAYER_IMAGE_PATH"], "rb") as f:
 		print("sending player sprite to server")
