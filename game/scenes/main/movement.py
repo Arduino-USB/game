@@ -74,13 +74,13 @@ def draw_objects(server_data, client_data=None):
 
 		if "location" in current_user_dict:
 			location = current_user_dict["location"]
-
+			uuid = current_user_dict["uuid"]
 			#Check if other players  on the same part of the map and if they are not,
 
 			current_player_grid = (grid(location["x"]), grid(location["y"]))
 			client_player_grid = (grid(player_pos["x"]), grid(player_pos["y"]))
 
-			if current_player_grid != client_player_grid:
+			if current_player_grid != client_player_grid or uuid == client_data["uuid"]:
 				continue
 
 			#turn server  real coords to relitave ones
@@ -89,7 +89,7 @@ def draw_objects(server_data, client_data=None):
 			
 
 			#get the player image from ram
-			uuid = current_user_dict["uuid"]
+			
 			player_image = client_data["player_images"][uuid]
 			
 			#username tag thing
