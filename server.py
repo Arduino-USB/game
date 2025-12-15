@@ -329,7 +329,7 @@ def main():
 	print(f"BCAST server on port {PORT_BCAST}")
 
 	print("Starting intermission stage")
-	intermission(debug=True)
+	intermission(debug=False)
 	print("Intermission stage is over, game is starting")
 
 	threading.Thread(target=broadcast_loop, daemon=True).start()

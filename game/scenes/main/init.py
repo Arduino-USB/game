@@ -11,17 +11,25 @@ def init(client_data=None):
 	
 	
 	client_data["player_images"] = {}
-	
+	client_data["roles"] = {}
 		
 	player_data = client_data["init_player_data"]	
+
+	print("======InitPlayerData======")
+	print(player_data.keys())
 	all_uuids = list(player_data.keys()) 
 	
 	for i in range(len(player_data)):
-	    b64_str = player_data[all_uuids[i]]["player_image"]  # <-- access dict first
-	    player_image = BytesIO(base64.b64decode(b64_str))
-	    client_data["player_images"][all_uuids[i]] = pygame.image.load(player_image)	
-	
+		b64_str = player_data[all_uuids[i]]["player_image"]  # <-- access dict first
+		player_image = BytesIO(base64.b64decode(b64_str))
+		client_data["player_images"][all_uuids[i]] = pygame.image.load(player_image)	
 
+		client_data["roles"][all_uuids[i]] = player_data[all_uuids[i]]["role"]
+
+
+	
+	print("======InitPlayerImagesLoaded======")
+	print(client_data["player_images"].keys())
 
 
 	print(f"Loaded player images:\n{client_data['player_images']}")
@@ -31,6 +39,14 @@ def init(client_data=None):
 
 	client_data["player_pos"]["x"] = player_data[player_id]["location"]["x"]
 	client_data["player_pos"]["y"] = player_data[player_id]["location"]["y"]
+
+	client_data["role"] = player_data[player_id]["role"]
+
+	
+	
+
+	
+		
 
 
 	client_data["computer_locked"] = pygame.image.load("computer_locked.png")

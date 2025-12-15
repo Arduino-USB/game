@@ -1,7 +1,6 @@
 import pygame
-from scenes.main.helper_functions import load_assets, norm_path
+from scenes.main.helper_functions import load_assets, norm_path, get_object_player_is_on
 from scenes.main.map import teleport_out, get_cell, get_region, grid, load_current_map	
-from pprint import pprint
 
 
 def try_move(target_x, target_y, client_data=None):
@@ -20,7 +19,7 @@ def try_move(target_x, target_y, client_data=None):
 
 	client_data["player_pos"]["x"] = target_x
 	client_data["player_pos"]["y"] = target_y
-	print(f"Player moved to {target_x}, {target_y}")
+	#print(f"Player moved to {target_x}, {target_y}")
 	return client_data, True
 
 def handle_input(client_data=None):
@@ -65,14 +64,10 @@ def draw_objects(server_data, client_data=None):
 		return client_data
 	
 	
-	# '33710d49-c304-4e2c-86f0-281573f8d22f': {'location': {'x': 859, 'y': 777},
-    #                                      'type': 'locker',
-    #                                      'uuid': '33710d49-c304-4e2c-86f0-281573f8d22f'}
-
 	object_data = server_data["objects"]
 	object_keys = list(object_data.keys())
 
-
+	#print(object_data)
 	for i in range(len(object_data)):
 		current_object = object_data[object_keys[i]]
 		obj_location = (current_object["location"]["x"], current_object["location"]["y"])
@@ -112,7 +107,7 @@ def draw_objects(server_data, client_data=None):
 		if "location" in current_user_dict:
 			
 			location = current_user_dict["location"]
-			uuid = current_user_dict["uuid"]
+			u_id = current_user_dict["uuid"]
 			#Check if other players  on the same part of the map and if they are not,
 
 			current_player_grid = (grid(location["x"]), grid(location["y"]))
@@ -121,14 +116,38 @@ def draw_objects(server_data, client_data=None):
 				continue
 			
 
+
+			player_image = client_data["player_images"][u_id]
+			
+			obj_player_is_on = get_object_player_is_on(
+				object_data, 
+				(location["x"], location["y"]), 
+				(player_image.get_width(), player_image.get_height())
+			)
+
+
+
+			#Dont graph the playert if on locker
+			if obj_player_is_on is not None:
+				print(f"Player is standing on {obj_player_is_on}")
+				if obj_player_is_on["type"] == "locker" and client_data["role"] == "survivor":
+					continue
+
 			#turn server  real coords to relitave ones
 			graph_x, graph_y = simplify_coords(location["x"], location["y"])
 			
 			#get the player image from ram
-			player_image = client_data["player_images"][uuid]
+			
 			
 			#username tag thing
-			username_surface = client_data["font"].render(current_user_dict["username"], True, (0, 0, 0))
+
+			if client_data["roles"][u_id] == "hunter":
+				color = (255, 0, 0)
+			else:
+				color = (0, 0, 0)
+
+				
+			username_surface = client_data["font"].render(current_user_dict["username"], True, color)
 
 			#scale that thaang
 			new_w = int(username_surface.get_width() * client_data["scale"])

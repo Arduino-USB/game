@@ -8,7 +8,7 @@ def update_server_location(client_data=None):
 	now = time.time()
 	if now - client_data["last_send_time"] >= client_data["SEND_INTERVAL"]:
 		send_to_server({"set_location": {"x": client_data["player_pos"]["x"], "y": client_data["player_pos"]["y"]}})
-		print("location updated")
+		#print("location updated")
 		return now
 	return client_data["last_send_time"]
 
