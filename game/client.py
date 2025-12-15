@@ -36,6 +36,9 @@ def set_host(host):
 def set_uuid(u_id):
 	global USER_UUID
 	USER_UUID = u_id
+	
+	
+	
 
 def connect(host=get_host()):
 	global HOST, _broadcast_socket, _cmd_socket

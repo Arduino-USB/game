@@ -22,9 +22,20 @@ def load_assets(w, h, client_data=None):
 	
 	LAST_KNOWN_WH = w, h
 
-	player_image = pygame.transform.scale(client_data["player_image"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"] / 10))
+	player_images = client_data["player_images"]
+	player_uuids = list(player_images.keys())
+	for i in range(len(player_images)):
+		current_image = player_images[player_uuids[i]]
+		current_image = pygame.transform.scale(current_image, (client_data["CURRENT_W"] / 15, client_data["CURRENT_H"] / 15))
+		client_data.update({"player_images" : {player_uuids[i] : current_image}})
+
+	client_data["computer_locked"] = pygame.transform.scale(client_data["computer_locked"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"] / 10))
+	client_data["computer_hacked"] = pygame.transform.scale(client_data["computer_hacked"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"] / 10))
+	client_data["locker"] = pygame.transform.scale(client_data["locker"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"]  / 10))
+	client_data["exit"] = pygame.transform.scale(client_data["exit"], (client_data["CURRENT_W"] / 10, client_data["CURRENT_H"] / 10))
+
 	font = pygame.font.Font(None, int(32 / scale))
 
-	client_data.update({"player_image" : player_image, "font" : font, "scale" : scale, "player_width" : player_image.get_width(), "player_height" : player_image.get_height(), "LAST_KNOWN_WH": LAST_KNOWN_WH })
+	client_data.update({"LAST_KNOWN_WH": LAST_KNOWN_WH})
 	return client_data, True
 

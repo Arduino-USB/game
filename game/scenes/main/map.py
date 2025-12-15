@@ -38,7 +38,7 @@ def teleport_out(client_data, search_radius=50, step=5):
 					continue
 
 				# Check if target position is free
-				if get_region(tx, ty, client_data=client_data) is None:
+				if get_region(tx, ty, client_data["uuid"], client_data=client_data) is None:
 					return tx, ty
 
 	# No free spot found
@@ -46,7 +46,7 @@ def teleport_out(client_data, search_radius=50, step=5):
 
 	
 
-def get_region(x, y, client_data=None):
+def get_region(x, y, u_id, client_data=None):
 	
 	"""Return the name of the region the player touches, or None if no region."""
 	for cell in client_data["MAP_CONF"].get("cells", []):
@@ -54,13 +54,13 @@ def get_region(x, y, client_data=None):
 		cell_y = cell["y"] * client_data["MAP_CONF"]["tileSize"]
 
 		# Check if player's bbox intersects this cell
-		if x + client_data["player_width"] >= cell_x and x <= cell_x + client_data["MAP_CONF"]["tileSize"] and \
-		   y + client_data["player_height"] >= cell_y and y <= cell_y + client_data["MAP_CONF"]["tileSize"]:
+		if x + client_data["player_images"][u_id].get_width() >= cell_x and x <= cell_x + client_data["MAP_CONF"]["tileSize"] and \
+		   y + client_data["player_images"][u_id].get_height() >= cell_y and y <= cell_y + client_data["MAP_CONF"]["tileSize"]:
 			# Player coordinates relative to cell
 			player_x1 = x - cell_x
 			player_y1 = y - cell_y
-			player_x2 = player_x1 + client_data["player_width"] 
-			player_y2 = player_y1 + client_data["player_height"] 
+			player_x2 = player_x1 + client_data["player_images"][u_id].get_width() 
+			player_y2 = player_y1 + client_data["player_images"][u_id].get_height()
 
 			for region in cell.get("regions", []):
 				# Check if player bbox overlaps region bbox

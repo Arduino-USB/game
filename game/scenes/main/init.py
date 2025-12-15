@@ -21,8 +21,22 @@ def init(client_data=None):
 	    player_image = BytesIO(base64.b64decode(b64_str))
 	    client_data["player_images"][all_uuids[i]] = pygame.image.load(player_image)	
 	
+
+
+
 	print(f"Loaded player images:\n{client_data['player_images']}")
 	
+	# set current player player_pos
+	player_id = client_data["uuid"]
+
+	client_data["player_pos"]["x"] = player_data[player_id]["location"]["x"]
+	client_data["player_pos"]["y"] = player_data[player_id]["location"]["y"]
+
+
+	client_data["computer_locked"] = pygame.image.load("computer_locked.png")
+	client_data["computer_hacked"] = pygame.image.load("computer_hacked.png")
+	client_data["locker"] = pygame.image.load("locker.png")
+	client_data["exit"] = pygame.image.load("exit.png")
 	del[client_data["init_player_data"]]	
 	
 	

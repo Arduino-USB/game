@@ -75,7 +75,7 @@ def setup_scene(client_data=None):
 				print(f"Currently checking dict: {current_dih}")
 				if current_dih["uuid"] == client_data["uuid"] and current_dih["message"] == "SUCCESS":
 					uuid_accepted = True
-					client_data = set_uuid(client_data["uuid"], client_data=client_data)
+					set_uuid(client_data["uuid"])
 					break
 
 		elif datetime.now() - last_time >= timedelta(seconds=0.5):
