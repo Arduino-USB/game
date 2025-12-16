@@ -4,169 +4,169 @@ from scenes.main.map import teleport_out, get_cell, get_region, grid, load_curre
 from client import send_to_server
 
 def try_move(target_x, target_y, client_data=None):
-    if get_cell(grid(target_x), grid(target_y), client_data=client_data) is None:
-        return client_data, False
-    print("Player moved to a place where grid don not exist")
-    if get_region(target_x, target_y, client_data["uuid"], client_data=client_data) == "no_walk_zone":
-        print("Player is in a no_walk_zone")
-        coords = teleport_out(client_data)
-        if coords:
-            client_data["player_pos"]["x"], client_data["player_pos"]["y"] = coords
-        return client_data, True
-    client_data["player_pos"]["x"] = target_x
-    client_data["player_pos"]["y"] = target_y
-    return client_data, True
+	if get_cell(grid(target_x), grid(target_y), client_data=client_data) is None:
+		return client_data, False
+	#print("Player moved to a place where grid don not exist")
+	if get_region(target_x, target_y, client_data["uuid"], client_data=client_data) == "no_walk_zone":
+		print("Player is in a no_walk_zone")
+		coords = teleport_out(client_data)
+		if coords:
+			client_data["player_pos"]["x"], client_data["player_pos"]["y"] = coords
+		return client_data, True
+	client_data["player_pos"]["x"] = target_x
+	client_data["player_pos"]["y"] = target_y
+	return client_data, True
 
 def handle_input(client_data=None):
-    if not client_data.get("alive", True):
-        return client_data, False
+	if not client_data.get("alive", True):
+		return client_data, False
 
-    keys = pygame.key.get_pressed()
-    moved = False
-    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        client_data, moved = try_move(client_data["player_pos"]["x"] + client_data["WALKSPEED"], client_data["player_pos"]["y"], client_data=client_data)
-    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        client_data, moved = try_move(client_data["player_pos"]["x"] - client_data["WALKSPEED"], client_data["player_pos"]["y"], client_data=client_data)
-    if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-        client_data, moved = try_move(client_data["player_pos"]["x"] , client_data["player_pos"]["y"] + client_data["WALKSPEED"], client_data=client_data)
-    if keys[pygame.K_UP] or keys[pygame.K_w]:
-        client_data, moved = try_move(client_data["player_pos"]["x"] , client_data["player_pos"]["y"] - client_data["WALKSPEED"], client_data=client_data)
-    return client_data, moved
+	keys = pygame.key.get_pressed()
+	moved = False
+	if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+		client_data, moved = try_move(client_data["player_pos"]["x"] + client_data["WALKSPEED"], client_data["player_pos"]["y"], client_data=client_data)
+	if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+		client_data, moved = try_move(client_data["player_pos"]["x"] - client_data["WALKSPEED"], client_data["player_pos"]["y"], client_data=client_data)
+	if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+		client_data, moved = try_move(client_data["player_pos"]["x"] , client_data["player_pos"]["y"] + client_data["WALKSPEED"], client_data=client_data)
+	if keys[pygame.K_UP] or keys[pygame.K_w]:
+		client_data, moved = try_move(client_data["player_pos"]["x"] , client_data["player_pos"]["y"] - client_data["WALKSPEED"], client_data=client_data)
+	return client_data, moved
 
 def simplify_coords(x, y):
-    new_x = x % 1000
-    new_y = y % 1000
-    return new_x, new_y
+	new_x = x % 1000
+	new_y = y % 1000
+	return new_x, new_y
 
 def draw_objects(server_data, client_data=None):
-    client_data, return_val = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
-    if not server_data:
-        return client_data
+	client_data, return_val = load_current_map(client_data["player_pos"]["x"], client_data["player_pos"]["y"], client_data=client_data)
+	if not server_data:
+		return client_data
 
-    object_data = server_data["objects"]
-    object_keys = list(object_data.keys())
+	object_data = server_data["objects"]
+	object_keys = list(object_data.keys())
 
-    # === OBJECTS (computers, lockers, exits) - NOW SCALED POSITION ===
-    for i in range(len(object_data)):
-        current_object = object_data[object_keys[i]]
-        obj_location = (current_object["location"]["x"], current_object["location"]["y"])
-        player_location = client_data["player_pos"]
-        player_grid = (grid(player_location["x"]), grid(player_location["y"]))
-        obj_grid = (grid(obj_location[0]), grid(obj_location[1]))
-        if player_grid != obj_grid:
-            continue
-        
-        # Convert to relative 0-1000 coords
-        rel_x, rel_y = simplify_coords(obj_location[0], obj_location[1])
-        
-        # Apply scale to position (just like players and nametags)
-        draw_x = rel_x * client_data["scale"]
-        draw_y = rel_y * client_data["scale"]
-        
-        if current_object["type"] == "computer":
-            if current_object["status"] == "hacked":
-                client_data["screen"].blit(client_data["computer_hacked"], (draw_x, draw_y))
-            else:
-                client_data["screen"].blit(client_data["computer_locked"], (draw_x, draw_y))
-        if current_object["type"] == "locker":
-            client_data["screen"].blit(client_data["locker"], (draw_x, draw_y))
-        if current_object["type"] == "exit" and current_object["status"] == "open":
-            client_data["screen"].blit(client_data["exit"], (draw_x, draw_y))
+	# === OBJECTS (computers, lockers, exits) - NOW SCALED POSITION ===
+	for i in range(len(object_data)):
+		current_object = object_data[object_keys[i]]
+		obj_location = (current_object["location"]["x"], current_object["location"]["y"])
+		player_location = client_data["player_pos"]
+		player_grid = (grid(player_location["x"]), grid(player_location["y"]))
+		obj_grid = (grid(obj_location[0]), grid(obj_location[1]))
+		if player_grid != obj_grid:
+			continue
+		
+		# Convert to relative 0-1000 coords
+		rel_x, rel_y = simplify_coords(obj_location[0], obj_location[1])
+		
+		# Apply scale to position (just like players and nametags)
+		draw_x = rel_x * client_data["scale"]
+		draw_y = rel_y * client_data["scale"]
+		
+		if current_object["type"] == "computer":
+			if current_object["status"] == "hacked":
+				client_data["screen"].blit(client_data["computer_hacked"], (draw_x, draw_y))
+			else:
+				client_data["screen"].blit(client_data["computer_locked"], (draw_x, draw_y))
+		if current_object["type"] == "locker":
+			client_data["screen"].blit(client_data["locker"], (draw_x, draw_y))
+		if current_object["type"] == "exit" and current_object["status"] == "open":
+			client_data["screen"].blit(client_data["exit"], (draw_x, draw_y))
 
-    user_data = server_data["users"]
-    user_keys = list(user_data.keys())
-    player_pos = client_data["player_pos"]
+	user_data = server_data["users"]
+	user_keys = list(user_data.keys())
+	player_pos = client_data["player_pos"]
 
-    # === HUNTER KILL LOGIC ===
-    if client_data["role"] == "hunter":
-        for i in range(len(user_data)):
-            current_user_dict = user_data[user_keys[i]]
+	# === HUNTER KILL LOGIC ===
+	if client_data["role"] == "hunter":
+		for i in range(len(user_data)):
+			current_user_dict = user_data[user_keys[i]]
 				
 
 			#check if emtpy user
 
-            if "uuid" not in current_user_dict.keys():
-                continue
+			if "uuid" not in current_user_dict.keys():
+				continue
 
-            if "location" in current_user_dict:
-                location = current_user_dict["location"]
-                u_id = current_user_dict["uuid"]
-                if u_id == client_data["uuid"]:
-                    continue
-                if current_user_dict.get("role") == "survivor" and current_user_dict.get("alive", True):
-                    dist = distance_between_players(player_pos, location)
-                    if dist <= 50:
-                        send_to_server({"kill_player": {"target_uuid": u_id}})
+			if "location" in current_user_dict:
+				location = current_user_dict["location"]
+				u_id = current_user_dict["uuid"]
+				if u_id == client_data["uuid"]:
+				    continue
+				if current_user_dict.get("role") == "survivor" and current_user_dict.get("alive", True):
+				    dist = distance_between_players(player_pos, location)
+				    if dist <= 50:
+				        send_to_server({"kill_player": {"target_uuid": u_id}})
 
-    # === HACKING & EXIT CHECK ===
-    obj_on = get_object_player_is_on(object_data, (player_pos["x"], player_pos["y"]),
-                                     (client_data["player_images"][client_data["uuid"]].get_width(),
-                                      client_data["player_images"][client_data["uuid"]].get_height()))
+	# === HACKING & EXIT CHECK ===
+	obj_on = get_object_player_is_on(object_data, (player_pos["x"], player_pos["y"]),
+				                     (client_data["player_images"][client_data["uuid"]].get_width(),
+				                      client_data["player_images"][client_data["uuid"]].get_height()))
 
-    keys = pygame.key.get_pressed()
-    if obj_on and obj_on["type"] == "computer" and obj_on["status"] is None and client_data["role"] == "survivor":
+	keys = pygame.key.get_pressed()
+	if obj_on and obj_on["type"] == "computer" and obj_on["status"] is None and client_data["role"] == "survivor":
 		#Add press E to heck message
-        if keys[pygame.K_e]:
-            send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
+		if keys[pygame.K_e]:
+			send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
 
-    if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open" and client_data["has_exited"] == False:
-        send_to_server({"player_exit": {}})
-        client_data["has_exited"] = True
+	if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open" and client_data["has_exited"] == False and client_data["role"] == "survivor":
+		send_to_server({"player_exit": {}})
+		client_data["has_exited"] = True
 
-    # === PLAYERS & NAMETAGS (original logic unchanged) ===
-    for i in range(len(user_data)):
-        current_user_dict = user_data[user_keys[i]]
+	# === PLAYERS & NAMETAGS (original logic unchanged) ===
+	for i in range(len(user_data)):
+		current_user_dict = user_data[user_keys[i]]
 
 
-        if "uuid" not in current_user_dict.keys():
-            continue
-             
-        if "location" in current_user_dict:
-            location = current_user_dict["location"]
+		if "uuid" not in current_user_dict.keys():
+			continue
+			 
+		if "location" in current_user_dict:
+			location = current_user_dict["location"]
 
-            print(current_user_dict)
+			print(current_user_dict)
 			
-            u_id = current_user_dict["uuid"]
-            current_player_grid = (grid(location["x"]), grid(location["y"]))
-            client_player_grid = (grid(player_pos["x"]), grid(player_pos["y"]))
-            if current_player_grid != client_player_grid:
-                continue
-            player_image = client_data["player_images"][u_id]
-            obj_player_is_on = get_object_player_is_on(
-                object_data,
-                (location["x"], location["y"]),
-                (player_image.get_width(), player_image.get_height())
-            )
-            if obj_player_is_on is not None:
-                print(f"Player is standing on {obj_player_is_on}")
-                if obj_player_is_on["type"] == "locker" and client_data["role"] == "survivor":
-                    continue
+			u_id = current_user_dict["uuid"]
+			current_player_grid = (grid(location["x"]), grid(location["y"]))
+			client_player_grid = (grid(player_pos["x"]), grid(player_pos["y"]))
+			if current_player_grid != client_player_grid:
+				continue
+			player_image = client_data["player_images"][u_id]
+			obj_player_is_on = get_object_player_is_on(
+				object_data,
+				(location["x"], location["y"]),
+				(player_image.get_width(), player_image.get_height())
+			)
+			if obj_player_is_on is not None:
+				print(f"Player is standing on {obj_player_is_on}")
+				if obj_player_is_on["type"] == "locker" and client_data["role"] == "survivor":
+				    continue
 
-            graph_x, graph_y = simplify_coords(location["x"], location["y"])
+			graph_x, graph_y = simplify_coords(location["x"], location["y"])
 
-            username = current_user_dict["username"]
-            alive = current_user_dict.get("alive", True)
-            if not alive:
-                username += " (dead)"
-                color = (128, 128, 128)
-            elif client_data["roles"][u_id] == "hunter":
-                color = (255, 0, 0)
-            else:
-                color = (0, 0, 0)
+			username = current_user_dict["username"]
+			alive = current_user_dict.get("alive", True)
+			if not alive:
+				username += " (dead)"
+				color = (128, 128, 128)
+			elif client_data["roles"][u_id] == "hunter":
+				color = (255, 0, 0)
+			else:
+				color = (0, 0, 0)
 
-            username_surface = client_data["font"].render(username, True, color)
-            new_w = int(username_surface.get_width() * client_data["scale"])
-            new_h = int(username_surface.get_height() * client_data["scale"])
-            username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
+			username_surface = client_data["font"].render(username, True, color)
+			new_w = int(username_surface.get_width() * client_data["scale"])
+			new_h = int(username_surface.get_height() * client_data["scale"])
+			username_surface = pygame.transform.scale(username_surface, (new_w, new_h))
 
-            player_rect = player_image.get_rect(
-                topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"])
-            )
-            text_rect = username_surface.get_rect()
-            text_rect.midbottom = player_rect.midtop
-            text_rect.y -= 15
+			player_rect = player_image.get_rect(
+				topleft=(graph_x * client_data["scale"], graph_y * client_data["scale"])
+			)
+			text_rect = username_surface.get_rect()
+			text_rect.midbottom = player_rect.midtop
+			text_rect.y -= 15
 
-            client_data["screen"].blit(username_surface, text_rect)
-            client_data["screen"].blit(player_image, player_rect)
+			client_data["screen"].blit(username_surface, text_rect)
+			client_data["screen"].blit(player_image, player_rect)
 
-    return client_data
+	return client_data

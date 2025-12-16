@@ -123,7 +123,7 @@ def _recv_reply_thread():
 					msg = ast.literal_eval(line)
 
 					# Handle set_var messages directed to this user
-					if "set_var" in msg:
+					if "set_vars" in msg:
 						if USER_UUID is None:
 							print("UUID not set up yet")
 						elif USER_UUID in msg.get("uuid", []) or msg.get("uuid") == "*":

@@ -25,14 +25,14 @@ def file_picker(title="Select a player image", filetypes=(("PNG files", "*.png")
 
 
 def message_box(prompt):
-    root = tk.Tk()
-    root.withdraw()  # Hide main Tk window
+	root = tk.Tk()
+	root.withdraw()  # Hide main Tk window
 
-    result = messagebox.askyesno(
-        "Confirmation",
-        prompt
-    )
+	result = messagebox.askyesno(
+		"Confirmation",
+		prompt
+	)
 
-    root.destroy()
-    return result
+	root.destroy()
+	return result
 
