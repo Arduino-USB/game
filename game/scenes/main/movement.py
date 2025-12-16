@@ -81,6 +81,13 @@ def draw_objects(server_data, client_data=None):
     if client_data["role"] == "hunter":
         for i in range(len(user_data)):
             current_user_dict = user_data[user_keys[i]]
+				
+
+			#check if emtpy user
+
+            if "uuid" not in current_user_dict.keys():
+                continue
+
             if "location" in current_user_dict:
                 location = current_user_dict["location"]
                 u_id = current_user_dict["uuid"]
@@ -102,12 +109,15 @@ def draw_objects(server_data, client_data=None):
         if keys[pygame.K_e]:
             send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
 
-    if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open":
+    if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open" and client_data["has_exited"] == False:
         send_to_server({"player_exit": {}})
+        client_data["has_exited"] = True
 
     # === PLAYERS & NAMETAGS (original logic unchanged) ===
     for i in range(len(user_data)):
         current_user_dict = user_data[user_keys[i]]
+
+
         if "uuid" not in current_user_dict.keys():
             continue
              

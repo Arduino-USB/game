@@ -30,7 +30,8 @@ client_data = {
     "LAST_KNOWN_WH": (999, 999),
     "running": True,
     "alive": True,
-    "won": False
+    "won": False,
+	"has_exited" : False
 }
 
 # Restored original force_square_window function
