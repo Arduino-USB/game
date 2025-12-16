@@ -96,16 +96,19 @@ def player_exit(data, server_data=None, from_id=None):
                     "SEND": {
                         "uuid": player_uuid,
                         "func": "game_end",
-                        "won": False
-                    }
+						"set_vars": {"current_scene" : "end_scene", "end_scene_message" : "You Lost!"}
+                    },
+					"SR_DEL_USERS" : {player_uuid : "*"}
+			
                 }
             else:
                 return {
                     "SEND": {
-                        "uuid": player_uuid,
+						"uuid" : player_uuid,
                         "func": "game_end",
-                        "won": True
-                    }
+                        "set_vars": {"current_scene" : "end_scene", "end_scene_message" : "You Won!"}
+                    },
+					"SR_DEL_USERS" : {player_uuid : "*"}
                 }
     return {}
 

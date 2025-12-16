@@ -3,6 +3,7 @@ import pygame
 pygame.init()
 pygame.display.set_caption("mypygameapp")
 from settings import FPS
+from client import get_vars
 import scene_manager
 clock = pygame.time.Clock()
 running = True
@@ -23,8 +24,8 @@ client_data = {
     "BLOCK_Y" : 0,
     "CURRENT_BLOCK" : None,
     "MAP_CONF" : None,
-    "CURRENT_MAP" : "cmp",
-    "WALKSPEED" : 2,
+    "CURRENT_MAP" : None,
+    "WALKSPEED" : 4,
     "last_send_time" : 0,
     "LAST_KNOWN_WH": (999, 999),
     "running": True,
@@ -73,6 +74,8 @@ while running:
     )(client_data=client_data)
     if isinstance(output, dict):
         client_data.update(output)
+
+    client_data.update(get_vars())
 
     # Allow end_scene to quit
     if not client_data.get("running", True):

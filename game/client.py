@@ -37,8 +37,12 @@ def set_uuid(u_id):
 	global USER_UUID
 	USER_UUID = u_id
 	
-	
-	
+_vars = {}  # Stores variables set via {"set_var": {...}}
+
+def get_vars():
+	"""Return a copy of currently stored variables"""
+	global _vars
+	return _vars.copy()
 
 def connect(host=get_host()):
 	global HOST, _broadcast_socket, _cmd_socket
@@ -93,11 +97,18 @@ def read_broadcast():
 
 
 # -------------------------------
+# VARIABLE STORAGE
+# -------------------------------
+
+
+
+# -------------------------------
 # COMMAND/REPLY READER
 # -------------------------------
 def _recv_reply_thread():
 	"""Continuously read replies (SEND)"""
 	buffer = ""
+	global _vars
 	while True:
 		try:
 			data = _cmd_socket.recv(1024)
@@ -110,7 +121,18 @@ def _recv_reply_thread():
 					continue
 				try:
 					msg = ast.literal_eval(line)
+
+					# Handle set_var messages directed to this user
+					if "set_var" in msg:
+						if USER_UUID is None:
+							print("UUID not set up yet")
+						elif USER_UUID in msg.get("uuid", []) or msg.get("uuid") == "*":
+							_vars.update(msg["set_var"])
+							print("Variables updated:", msg["set_var"])
+
+					# Add message to reply queue anyway
 					_reply_queue.put(msg)
+
 				except Exception as e:
 					print("Reply parse error:", e)
 		except Exception as e:

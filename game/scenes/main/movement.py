@@ -17,7 +17,6 @@ def try_move(target_x, target_y, client_data=None):
     client_data["player_pos"]["y"] = target_y
     return client_data, True
 
-# Block movement if dead
 def handle_input(client_data=None):
     if not client_data.get("alive", True):
         return client_data, False
@@ -47,7 +46,7 @@ def draw_objects(server_data, client_data=None):
     object_data = server_data["objects"]
     object_keys = list(object_data.keys())
 
-    # === ORIGINAL OBJECT BLITTING RESTORED ===
+    # === OBJECTS (computers, lockers, exits) - NOW SCALED POSITION ===
     for i in range(len(object_data)):
         current_object = object_data[object_keys[i]]
         obj_location = (current_object["location"]["x"], current_object["location"]["y"])
@@ -56,22 +55,29 @@ def draw_objects(server_data, client_data=None):
         obj_grid = (grid(obj_location[0]), grid(obj_location[1]))
         if player_grid != obj_grid:
             continue
-        obj_location = simplify_coords(obj_location[0], obj_location[1])
+        
+        # Convert to relative 0-1000 coords
+        rel_x, rel_y = simplify_coords(obj_location[0], obj_location[1])
+        
+        # Apply scale to position (just like players and nametags)
+        draw_x = rel_x * client_data["scale"]
+        draw_y = rel_y * client_data["scale"]
+        
         if current_object["type"] == "computer":
             if current_object["status"] == "hacked":
-                client_data["screen"].blit(client_data["computer_hacked"], obj_location)
+                client_data["screen"].blit(client_data["computer_hacked"], (draw_x, draw_y))
             else:
-                client_data["screen"].blit(client_data["computer_locked"], obj_location)
+                client_data["screen"].blit(client_data["computer_locked"], (draw_x, draw_y))
         if current_object["type"] == "locker":
-            client_data["screen"].blit(client_data["locker"], obj_location)
-        if current_object["type"] == "exit" and current_object["status"] == "open":  # only show when open
-            client_data["screen"].blit(client_data["exit"], obj_location)
+            client_data["screen"].blit(client_data["locker"], (draw_x, draw_y))
+        if current_object["type"] == "exit" and current_object["status"] == "open":
+            client_data["screen"].blit(client_data["exit"], (draw_x, draw_y))
 
     user_data = server_data["users"]
     user_keys = list(user_data.keys())
     player_pos = client_data["player_pos"]
 
-    # === HUNTER KILL LOGIC (kept) ===
+    # === HUNTER KILL LOGIC ===
     if client_data["role"] == "hunter":
         for i in range(len(user_data)):
             current_user_dict = user_data[user_keys[i]]
@@ -85,23 +91,31 @@ def draw_objects(server_data, client_data=None):
                     if dist <= 50:
                         send_to_server({"kill_player": {"target_uuid": u_id}})
 
-    # === HACKING & EXIT (kept) ===
+    # === HACKING & EXIT CHECK ===
     obj_on = get_object_player_is_on(object_data, (player_pos["x"], player_pos["y"]),
                                      (client_data["player_images"][client_data["uuid"]].get_width(),
                                       client_data["player_images"][client_data["uuid"]].get_height()))
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_e] and obj_on and obj_on["type"] == "computer" and obj_on["status"] is None and client_data["role"] == "survivor":
-        send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
+    if obj_on and obj_on["type"] == "computer" and obj_on["status"] is None and client_data["role"] == "survivor":
+		#Add press E to heck message
+        if keys[pygame.K_e]:
+            send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
 
     if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open":
         send_to_server({"player_exit": {}})
 
-    # === ORIGINAL PLAYER & NAMETAG BLITTING RESTORED ===
+    # === PLAYERS & NAMETAGS (original logic unchanged) ===
     for i in range(len(user_data)):
         current_user_dict = user_data[user_keys[i]]
+        if "uuid" not in current_user_dict.keys():
+            continue
+             
         if "location" in current_user_dict:
             location = current_user_dict["location"]
+
+            print(current_user_dict)
+			
             u_id = current_user_dict["uuid"]
             current_player_grid = (grid(location["x"]), grid(location["y"]))
             client_player_grid = (grid(player_pos["x"]), grid(player_pos["y"]))
@@ -120,12 +134,11 @@ def draw_objects(server_data, client_data=None):
 
             graph_x, graph_y = simplify_coords(location["x"], location["y"])
 
-            # === NAMETAG WITH (dead) AND COLOR ===
             username = current_user_dict["username"]
             alive = current_user_dict.get("alive", True)
             if not alive:
                 username += " (dead)"
-                color = (128, 128, 128)  # gray
+                color = (128, 128, 128)
             elif client_data["roles"][u_id] == "hunter":
                 color = (255, 0, 0)
             else:

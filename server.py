@@ -22,11 +22,11 @@ index = 0
 # SERVER DATA STRUCTURE
 # ----------------------------------------
 def get_data():
+	# Only include users whose data dict is not empty
 	return {
-		"users": {addr: info["data"] for addr, info in connected_cmd.items()},
+		"users": {addr: info["data"] for addr, info in connected_cmd.items() if info["data"]},
 		"objects": objects
 	}
-
 
 def remove_key_from_all_users(key):
 	for info in connected_cmd.values():
