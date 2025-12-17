@@ -4,10 +4,10 @@ from helper_functions import load_map_init, norm_path, list_to_dict, get_region_
 
 # Edited by Grok
 
-def set_location(data, server_data=None, from_id=None):
+def set_location(data, server_data=None, from_id=None, connected_cmd=None):
 	return {"SET": {"location": {"x": data['x'], "y": data['y']}}}
 
-def set_username(data, server_data=None, from_id=None):
+def set_username(data, server_data=None, from_id=None, connected_cmd=None):
 	s_data = server_data
 	s_keys = list(s_data.keys())
 	# Check if username already exists
@@ -18,7 +18,7 @@ def set_username(data, server_data=None, from_id=None):
 	# If not, set the username for this client
 	return {"SET": {"username": data}, "SEND" : {"uuid" : from_id, "message" : "SUCCESS"}}
 
-def set_uuid(data, server_data=None, from_id=None):
+def set_uuid(data, server_data=None, from_id=None, connected_cmd=None):
 	s_data = server_data
 	s_keys = list(s_data.keys())
 	for i in range(len(s_keys)):
@@ -27,10 +27,10 @@ def set_uuid(data, server_data=None, from_id=None):
 			{"SEND": {"message": "UUID_EXISTS"}}
 	return {"SET": {"uuid": data}, "SEND" : {"uuid" : data, "message" : "SUCCESS"}}
 
-def set_player_image(data, server_data=None, from_id=None):
+def set_player_image(data, server_data=None, from_id=None, connected_cmd=None):
 	return {"SET" : {"player_image" : data}}
 
-def kill_player(data, server_data=None, from_id=None):
+def kill_player(data, server_data=None, from_id=None, connected_cmd=None):
 	target_uuid = data["target_uuid"]
 	users = server_data["users"]
 
@@ -70,7 +70,7 @@ def kill_player(data, server_data=None, from_id=None):
 
 
 # Edited by Grok - new function for hacking computer
-def hack_computer(data, server_data=None, from_id=None):
+def hack_computer(data, server_data=None, from_id=None, connected_cmd=None):
 	obj_uuid = data["obj_uuid"]
 	objects = server_data["objects"]
 	if obj_uuid in objects and objects[obj_uuid]["type"] == "computer" and objects[obj_uuid]["status"] is None:
@@ -103,15 +103,17 @@ def hack_computer(data, server_data=None, from_id=None):
 		
 		return ret
 	return {}
-
-def player_exit(data, server_data=None, from_id=None):
+def player_exit(data, server_data=None, from_id=None, connected_cmd=None):
 	player_uuid = from_id
-	users = server_data["users"]
 
-	# Find the player who is exiting
+	if connected_cmd is None:
+		print("Error: connected_cmd not provided")
+		return {}
+
+	# Find the connection for this player
 	player_info = None
-	for addr, info in users.items():
-		if info.get("uuid") == player_uuid:
+	for addr, info in connected_cmd.items():
+		if info.get("data", {}).get("uuid") == player_uuid:
 			player_info = info
 			break
 
@@ -119,42 +121,34 @@ def player_exit(data, server_data=None, from_id=None):
 		return {}
 
 	output = {
-		"SEND": {"uuid": player_uuid, "set_vars": {"current_scene": "end_scene"}, "won": player_info.get("role") != "hunter"},
-		"SR_DEL_USERS": {player_uuid: "*"},
-		"SR_SET_USERS": {}
+		"SR_DEL_USERS": {},
+		"SR_SET_USERS": {},
+		"SEND": []
 	}
 
-	# Prepare lists of remaining players after this one leaves
-	remaining_users = [u for u in users.values() if u.get("uuid") != player_uuid]
-	hunters = [u for u in remaining_users if u.get("role") == "hunter"]
-	survivors_alive = [u for u in remaining_users if u.get("role") == "survivor" and u.get("alive", True)]
+	# Send exit message to the player first
+	output["SEND"].append({
+		"uuid": player_uuid,
+		"set_vars": {"current_scene": "end_scene", "won" : True},
+	})
 
-	# If no survivors left, hunters lose
+	# Remaining players
+	remaining_users = [u for u in connected_cmd.values() if u["data"].get("uuid") != player_uuid]
+	hunters = [u for u in remaining_users if u["data"].get("role") == "hunter"]
+	survivors_alive = [u for u in remaining_users if u["data"].get("role") == "survivor" and u["data"].get("alive", True)]
+
 	if not survivors_alive:
 		for h in hunters:
-			output.setdefault("SEND", {"uuid": "*"}).update({
-				"uuid": h.get("uuid"),
-				"set_vars": {"current_scene": "end_scene"},
-				"won": False
+			output["SEND"].append({
+				"uuid": h["data"].get("uuid"),
+				"set_vars": {"current_scene": "end_scene", "won" : False},
 			})
 
-	# If only one hunter left and no survivors, hunter wins
-	if len(hunters) == 1 and len(survivors_alive) == 0:
-		hunter_uuid = hunters[0]["uuid"]
-		output.setdefault("SEND", {"uuid": "*"}).update({
-			"uuid": hunter_uuid,
-			"set_vars": {"current_scene": "end_scene"},
-			"won": True
-		})
-
-		# Mark all other players as dead
-		for u in remaining_users:
-			if u.get("uuid") != hunter_uuid:
-				output["SR_SET_USERS"][u["uuid"]] = {"alive": False}
+	output["SR_DEL_USERS"][player_uuid] = "*"
 
 	return output
 
-def __send_init_data(data, server_data=None, from_id=None):
+def __send_init_data(data, server_data=None, from_id=None, connected_cmd=None):
 	server_data_keys = list(server_data["users"].keys())
 	print(server_data_keys)
 	hunter = random.choice(list(server_data_keys))

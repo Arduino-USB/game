@@ -70,7 +70,8 @@ def call_helper(data, conn=None, addr=None, from_server=False):
 	output = func(
 		data[func_name],
 		server_data=get_data(),
-		from_id=data.get("from")
+		from_id=data.get("from"),
+		connected_cmd=connected_cmd
 	)
 
 	# -----------------------------------------------------
@@ -156,30 +157,39 @@ def call_helper(data, conn=None, addr=None, from_server=False):
 	# SEND back to client
 	# -----------------------------------------------------
 	if "SEND" in output:
-		send_data = output["SEND"].copy()
-		send_data["func"] = func_name
-
-		# Determine recipients
-		target_uuid = send_data.get("uuid")
-		users = get_data()["users"]
-
-		if target_uuid == "*":
-			# Send to all connected clients
-			for a, info in connected_cmd.items():
-				try:
-					info["conn"].sendall(str(send_data).encode() + b'\n')
-				except:
-					print(f"Failed to send to {a}")
-		else:
-			# Send only to the matching UUID
-			for a, info in connected_cmd.items():
-				if users[a].get("uuid") == target_uuid:
+		sends = output["SEND"]
+		if not isinstance(sends, list):
+			sends = [sends]
+	
+		for send_data in sends:
+			send_data = send_data.copy()
+			send_data["func"] = func_name
+			target_uuid = send_data.get("uuid")
+	
+			if target_uuid == "*":
+				# send to all connections, even if data is empty
+				for a, info in connected_cmd.items():
 					try:
 						info["conn"].sendall(str(send_data).encode() + b'\n')
 					except:
 						print(f"Failed to send to {a}")
-					break
-
+			else:
+				if not isinstance(target_uuid, list):
+					target_uuid = [target_uuid]
+	
+				for t_uuid in target_uuid:
+					sent = False
+					for a, info in connected_cmd.items():
+						if info.get("data", {}).get("uuid") == t_uuid:
+							try:
+								info["conn"].sendall(str(send_data).encode() + b'\n')
+								sent = True
+							except:
+								print(f"Failed to send to {a}")
+							break
+					if not sent:
+						print(f"Cannot send to uuid={t_uuid}, connection missing or data cleared")
+	
 	return output
 
 
