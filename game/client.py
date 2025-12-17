@@ -127,8 +127,8 @@ def _recv_reply_thread():
 						if USER_UUID is None:
 							print("UUID not set up yet")
 						elif USER_UUID in msg.get("uuid", []) or msg.get("uuid") == "*":
-							_vars.update(msg["set_var"])
-							print("Variables updated:", msg["set_var"])
+							_vars.update(msg["set_vars"])
+							print("Variables updated:", msg["set_vars"])
 
 					# Add message to reply queue anyway
 					_reply_queue.put(msg)

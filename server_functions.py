@@ -30,24 +30,44 @@ def set_uuid(data, server_data=None, from_id=None):
 def set_player_image(data, server_data=None, from_id=None):
 	return {"SET" : {"player_image" : data}}
 
-# Edited by Grok - new function for killing
 def kill_player(data, server_data=None, from_id=None):
 	target_uuid = data["target_uuid"]
 	users = server_data["users"]
+
 	for addr, info in users.items():
 		if info.get("uuid") == target_uuid:
 			if info.get("role") == "survivor":
-				return {
-				    "SR_SET_USERS": {
-				        target_uuid: {"alive": False}
-				    },
-				    "SEND": {
-				        "uuid": "*",
-				        "func": "player_killed",
-				        "target_uuid": target_uuid
-				    }
+				# Mark player as dead
+				ret = {
+					"SR_SET_USERS": {target_uuid: {"alive": False}},
+					"SEND": {"uuid": "*", "func": "player_killed", "target_uuid": target_uuid}
 				}
+
+				# Check for game end conditions
+				hunters = [u for u in users.values() if u.get("role") == "hunter"]
+				survivors_alive = [u for u in users.values() if u.get("role") == "survivor" and u.get("alive", True)]
+
+				if not survivors_alive:
+					# All survivors dead → hunter loses? Or maybe everyone loses?
+					for u in hunters:
+						ret["SEND"] = {"uuid": u.get("uuid"), "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": False}}
+					# All survivors lose anyway
+					for u in users.values():
+						if u.get("role") == "survivor":
+							ret.setdefault("SR_SET_USERS", {})[u["uuid"]] = {"alive": False}
+					return ret
+				elif len(hunters) == 1 and not survivors_alive:
+					# Only hunter left alive → hunter wins
+					hunter_uuid = hunters[0]["uuid"]
+					ret["SEND"] = {"uuid": hunter_uuid, "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": True}}
+					for u in users.values():
+						if u.get("uuid") != hunter_uuid:
+							ret.setdefault("SR_SET_USERS", {})[u["uuid"]] = {"alive": False}
+					return ret
+
+				return ret
 	return {}
+
 
 # Edited by Grok - new function for hacking computer
 def hack_computer(data, server_data=None, from_id=None):
@@ -84,32 +104,41 @@ def hack_computer(data, server_data=None, from_id=None):
 		return ret
 	return {}
 
-# Edited by Grok - new function for exiting
 def player_exit(data, server_data=None, from_id=None):
 	player_uuid = from_id
 	users = server_data["users"]
+
 	for addr, info in users.items():
 		if info.get("uuid") == player_uuid:
-			if info.get("alive", True) == False:
-				# Dead players can't win
-				return {
-				    "SEND": {
-				        "uuid": player_uuid,
-				        "func": "game_end",
-						"set_vars": {"current_scene" : "end_scene", "end_scene_message" : "You Lost!"}
-				    },
-					"SR_DEL_USERS" : {player_uuid : "*"}
-			
-				}
-			else:
-				return {
-				    "SEND": {
-						"uuid" : player_uuid,
-				        "func": "game_end",
-				        "set_vars": {"current_scene" : "end_scene", "end_scene_message" : "You Won!"}
-				    },
-					"SR_DEL_USERS" : {player_uuid : "*"}
-				}
+			hunters = [u for u in users.values() if u.get("role") == "hunter"]
+			survivors_alive = [u for u in users.values() if u.get("role") == "survivor" and u.get("alive", True)]
+
+			# Remove player from game
+			output = {
+				"SEND": {"uuid": player_uuid, "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": info.get("role") != "hunter"}},
+				"SR_DEL_USERS": {player_uuid: "*"}
+			}
+
+			# Update survivors_alive list after removing this player
+			if info.get("role") == "survivor" and player_uuid in [u.get("uuid") for u in survivors_alive]:
+				survivors_alive = [u for u in survivors_alive if u.get("uuid") != player_uuid]
+
+			# Check if all survivors escaped
+			if not survivors_alive:
+				# Hunter loses
+				for h in hunters:
+					output["SEND"] = {"uuid": h.get("uuid"), "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": False}}
+
+			# If hunter is last alive
+			if len(hunters) == 1 and len(survivors_alive) == 0:
+				hunter_uuid = hunters[0]["uuid"]
+				output["SEND"] = {"uuid": hunter_uuid, "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": True}}
+				# All others lose
+				for u in users.values():
+					if u.get("uuid") != hunter_uuid and u.get("uuid") != player_uuid:
+						output.setdefault("SR_SET_USERS", {})[u["uuid"]] = {"alive": False}
+
+			return output
 	return {}
 
 def __send_init_data(data, server_data=None, from_id=None):

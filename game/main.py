@@ -31,7 +31,8 @@ client_data = {
 	"running": True,
 	"alive": True,
 	"won": False,
-	"has_exited" : False
+	"has_exited" : False,
+	"running" : True
 }
 
 # Restored original force_square_window function
@@ -50,12 +51,12 @@ def force_square_window(client_data=None):
 	return client_data
 
 # =================================================================
-while running:
+while client_data["running"]:
 	current_time = pygame.time.get_ticks()
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
-			running = False
+			client_data["running"] = False
 		elif event.type == pygame.VIDEORESIZE:
 			# Start debounce timer on any resize event
 			client_data["last_resize_time"] = current_time
@@ -79,8 +80,6 @@ while running:
 	client_data.update(get_vars())
 
 	# Allow end_scene to quit
-	if not client_data.get("running", True):
-		running = False
 
 	pygame.display.flip()
 	clock.tick(client_data["FPS"])
