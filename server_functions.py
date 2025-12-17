@@ -108,38 +108,51 @@ def player_exit(data, server_data=None, from_id=None):
 	player_uuid = from_id
 	users = server_data["users"]
 
+	# Find the player who is exiting
+	player_info = None
 	for addr, info in users.items():
 		if info.get("uuid") == player_uuid:
-			hunters = [u for u in users.values() if u.get("role") == "hunter"]
-			survivors_alive = [u for u in users.values() if u.get("role") == "survivor" and u.get("alive", True)]
+			player_info = info
+			break
 
-			# Remove player from game
-			output = {
-				"SEND": {"uuid": player_uuid, "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": info.get("role") != "hunter"}},
-				"SR_DEL_USERS": {player_uuid: "*"}
-			}
+	if not player_info:
+		return {}
 
-			# Update survivors_alive list after removing this player
-			if info.get("role") == "survivor" and player_uuid in [u.get("uuid") for u in survivors_alive]:
-				survivors_alive = [u for u in survivors_alive if u.get("uuid") != player_uuid]
+	output = {
+		"SEND": {"uuid": player_uuid, "set_vars": {"current_scene": "end_scene"}, "won": player_info.get("role") != "hunter"},
+		"SR_DEL_USERS": {player_uuid: "*"},
+		"SR_SET_USERS": {}
+	}
 
-			# Check if all survivors escaped
-			if not survivors_alive:
-				# Hunter loses
-				for h in hunters:
-					output["SEND"] = {"uuid": h.get("uuid"), "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": False}}
+	# Prepare lists of remaining players after this one leaves
+	remaining_users = [u for u in users.values() if u.get("uuid") != player_uuid]
+	hunters = [u for u in remaining_users if u.get("role") == "hunter"]
+	survivors_alive = [u for u in remaining_users if u.get("role") == "survivor" and u.get("alive", True)]
 
-			# If hunter is last alive
-			if len(hunters) == 1 and len(survivors_alive) == 0:
-				hunter_uuid = hunters[0]["uuid"]
-				output["SEND"] = {"uuid": hunter_uuid, "func": "game_end", "set_vars": {"current_scene": "end_scene", "won": True}}
-				# All others lose
-				for u in users.values():
-					if u.get("uuid") != hunter_uuid and u.get("uuid") != player_uuid:
-						output.setdefault("SR_SET_USERS", {})[u["uuid"]] = {"alive": False}
+	# If no survivors left, hunters lose
+	if not survivors_alive:
+		for h in hunters:
+			output.setdefault("SEND", {"uuid": "*"}).update({
+				"uuid": h.get("uuid"),
+				"set_vars": {"current_scene": "end_scene"},
+				"won": False
+			})
 
-			return output
-	return {}
+	# If only one hunter left and no survivors, hunter wins
+	if len(hunters) == 1 and len(survivors_alive) == 0:
+		hunter_uuid = hunters[0]["uuid"]
+		output.setdefault("SEND", {"uuid": "*"}).update({
+			"uuid": hunter_uuid,
+			"set_vars": {"current_scene": "end_scene"},
+			"won": True
+		})
+
+		# Mark all other players as dead
+		for u in remaining_users:
+			if u.get("uuid") != hunter_uuid:
+				output["SR_SET_USERS"][u["uuid"]] = {"alive": False}
+
+	return output
 
 def __send_init_data(data, server_data=None, from_id=None):
 	server_data_keys = list(server_data["users"].keys())

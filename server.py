@@ -114,6 +114,9 @@ def call_helper(data, conn=None, addr=None, from_server=False):
 			print(f"SR_SET_OBJ applied to object uuid={target_uuid}")
 
 
+	# -----------------------------------------------------
+	# SR_DEL_USERS (delete user data)
+	# -----------------------------------------------------
 	if "SR_DEL_USERS" in output:
 		payload = output["SR_DEL_USERS"]  # {uuid: [keys]} or {uuid: "*"}
 
@@ -152,21 +155,31 @@ def call_helper(data, conn=None, addr=None, from_server=False):
 	# -----------------------------------------------------
 	# SEND back to client
 	# -----------------------------------------------------
-
 	if "SEND" in output:
-		output["SEND"]["func"] = func_name
-		if conn is not None:
-			sending = str(output["SEND"]).encode() + b'\n'
-			conn.sendall(sending)
-		else:
-			# broadcast to all connected clients
+		send_data = output["SEND"].copy()
+		send_data["func"] = func_name
+
+		# Determine recipients
+		target_uuid = send_data.get("uuid")
+		users = get_data()["users"]
+
+		if target_uuid == "*":
+			# Send to all connected clients
 			for a, info in connected_cmd.items():
 				try:
-					sending = str(output["SEND"]).encode() + b'\n'
-					info["conn"].sendall(sending)
+					info["conn"].sendall(str(send_data).encode() + b'\n')
 				except:
 					print(f"Failed to send to {a}")
-	
+		else:
+			# Send only to the matching UUID
+			for a, info in connected_cmd.items():
+				if users[a].get("uuid") == target_uuid:
+					try:
+						info["conn"].sendall(str(send_data).encode() + b'\n')
+					except:
+						print(f"Failed to send to {a}")
+					break
+
 	return output
 
 
