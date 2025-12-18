@@ -1,9 +1,39 @@
 import os
 import pygame
 import math
+import tkinter as tk
+from tkinter import simpledialog
+import json
+import random
 
-# Edited by Grok
+def popup_input(prompt):
+	root = tk.Tk()
+	root.withdraw()  # Hide main Tk window
 
+	result = simpledialog.askstring(
+				"Input Required", 
+				prompt
+	)
+
+	root.destroy()
+	return result
+
+
+with open("ports.json", "r") as f:
+    DIH_PORTS = json.load(f)
+
+def hack_computer():
+	port_to_ask = random.choice(list(DIH_PORTS.keys()))
+	response = popup_input(f"Port for {port_to_ask} (numbers only)")
+	
+	try:	
+		if int(response.strip()) == DIH_PORTS[port_to_ask]:
+			return True
+		else:
+			return False
+	except:
+		return False
+		
 def norm_path(unix_path):
 	parts = unix_path.strip("/").split("/")
 	return os.path.join(*parts)

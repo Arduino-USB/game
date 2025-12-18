@@ -138,12 +138,12 @@ def end_scene(client_data=None):
 	won = client_data.get("won", False)
 	
 	if won:
-		text = "YOU ESCAPED!"
-		subtext = "Survivors Win"
+		text = "YOU WIN"
+		subtext = "Lesgooo"
 		color = (0, 255, 0)
 	else:
-		text = "YOU DIED"
-		subtext = "Hunter Wins" if client_data.get("role") == "hunter" else "Survivors Lose"
+		text = "YOU LOSE!!! :))))"
+		subtext = "Friggin loser, better luck next time bucko.\nnever seen such a loser in my entire life"
 		color = (255, 0, 0)
 	
 	surf = font_big.render(text, True, color)

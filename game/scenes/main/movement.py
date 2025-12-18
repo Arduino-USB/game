@@ -1,5 +1,5 @@
 import pygame
-from scenes.main.helper_functions import load_assets, norm_path, get_object_player_is_on, distance_between_players
+from scenes.main.helper_functions import load_assets, norm_path, get_object_player_is_on, distance_between_players, hack_computer
 from scenes.main.map import teleport_out, get_cell, get_region, grid, load_current_map
 from client import send_to_server
 
@@ -87,13 +87,22 @@ def draw_objects(server_data, client_data=None):
 
 			if "uuid" not in current_user_dict.keys():
 				continue
+			
+
+			if current_user_dict.get("player_exited", False):
+				continue
 
 			if "location" in current_user_dict:
 				location = current_user_dict["location"]
 				u_id = current_user_dict["uuid"]
 				if u_id == client_data["uuid"]:
 				    continue
-				if current_user_dict.get("role") == "survivor" and current_user_dict.get("alive", True):
+				if (
+					current_user_dict.get("role") == "survivor"
+					and current_user_dict.get("alive", True)
+					and not current_user_dict.get("player_exited", False)
+				):
+
 				    dist = distance_between_players(player_pos, location)
 				    if dist <= 50:
 				        send_to_server({"kill_player": {"target_uuid": u_id}})
@@ -107,8 +116,10 @@ def draw_objects(server_data, client_data=None):
 	if obj_on and obj_on["type"] == "computer" and obj_on["status"] is None and client_data["role"] == "survivor":
 		#Add press E to heck message
 		if keys[pygame.K_e]:
-			send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
-
+			if hack_computer():
+				send_to_server({"hack_computer": {"obj_uuid": obj_on["uuid"]}})
+			else:
+				print("User failed at hacking computer")
 	if obj_on and obj_on["type"] == "exit" and obj_on["status"] == "open" and client_data["has_exited"] == False and client_data["role"] == "survivor":
 		send_to_server({"player_exit": {}})
 		client_data["has_exited"] = True
